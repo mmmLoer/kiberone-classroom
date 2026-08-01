@@ -18,6 +18,7 @@ COMMAND_TYPES = (
     "open_url",
     "set_wallpaper",
     "run_file",
+    "run_shell",
     "restore_saves",
     "use_fresh_saves",
     "sync_now",

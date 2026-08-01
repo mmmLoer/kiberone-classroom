@@ -8,6 +8,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from ..server.hub import ClassroomServer
+from ..shared.branding import place_header_logo
 from ..shared.constants import APP_NAME, DEFAULT_PORT, DEFAULT_TOKEN, app_dir, default_backup_dir
 from ..shared.scrollable import ScrollableFrame
 from ..shared.starter_pack import (
@@ -44,6 +45,7 @@ class TeacherApp(tk.Tk):
     def _build(self) -> None:
         header = ttk.Frame(self, style="Header.TFrame", padding=(18, 12))
         header.pack(fill="x")
+        self._logo = place_header_logo(header, max_height=42)
         left_h = ttk.Frame(header, style="Header.TFrame")
         left_h.pack(side="left", fill="x", expand=True)
         ttk.Label(left_h, text="Панель преподавателя", style="Brand.TLabel").pack(anchor="w")
@@ -108,11 +110,18 @@ class TeacherApp(tk.Tk):
         )
         ttk.Button(actions, text="Отправить сообщение", command=self.push_message).grid(row=3, column=2, sticky="ew", pady=4)
 
+        ttk.Label(actions, text="Консольная команда", style="Surface.TLabel").grid(row=4, column=0, sticky="w", pady=(10, 0))
+        self.shell_var = tk.StringVar(value="python --version")
+        ttk.Entry(actions, textvariable=self.shell_var).grid(row=5, column=0, columnspan=2, sticky="ew", pady=(4, 8))
+        ttk.Button(actions, text="Выполнить на выбранных", command=self.push_shell).grid(
+            row=5, column=2, sticky="ew", padx=(8, 0), pady=(4, 8)
+        )
+
         ttk.Button(actions, text="История и откат…", command=self.open_history).grid(
-            row=4, column=0, columnspan=2, sticky="ew", pady=(8, 0)
+            row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0)
         )
         ttk.Button(actions, text="Открыть папку ученика", command=self.open_student_folder).grid(
-            row=4, column=2, sticky="ew", pady=(8, 0)
+            row=6, column=2, sticky="ew", pady=(8, 0)
         )
         actions.columnconfigure(0, weight=1)
         actions.columnconfigure(1, weight=1)
@@ -272,33 +281,51 @@ class TeacherApp(tk.Tk):
         if text:
             self._send_command("message", {"text": text})
 
+    def push_shell(self) -> None:
+        command = self.shell_var.get().strip()
+        if not command:
+            messagebox.showinfo("Команда пустая", "Введи команду для выполнения на ПК учеников.")
+            return
+        if not messagebox.askyesno(
+            "Выполнить команду?",
+            f"Запустить на выбранных ПК?\n\n{command}\n\nКоманда выполнится через cmd/PowerShell ученика.",
+        ):
+            return
+        self._send_command("run_shell", {"command": command, "timeout": 120})
+
     def _upload_deploy_file(self, local_path: Path) -> str:
         target = deploy_dir() / local_path.name
         target.write_bytes(local_path.read_bytes())
-        return f"deploy/{local_path.name}"
+        return local_path.name
 
     def push_wallpaper(self) -> None:
         path = filedialog.askopenfilename(title="Выбери обои", filetypes=[("Images", "*.png;*.jpg;*.jpeg;*.bmp")])
         if not path:
             return
-        rel = self._upload_deploy_file(Path(path))
-        data = Path(path).read_bytes()
+        src = Path(path)
+        name = self._upload_deploy_file(src)
+        # также кладём копию в бэкап каждого ученика на случай офлайна deploy
+        data = src.read_bytes()
         for client_id in self.selected_client_ids():
-            self.server.store.save_upload(client_id, rel, data)
-            self.server.store.enqueue([client_id], "set_wallpaper", {"relative_path": rel})
-        self.log(f"Обои отправлены: {Path(path).name}")
+            self.server.store.save_upload(client_id, f"deploy/{name}", data)
+            self.server.store.enqueue(
+                [client_id],
+                "set_wallpaper",
+                {"deploy_name": name, "relative_path": f"deploy/{name}"},
+            )
+        self.log(f"Обои отправлены: {name}")
 
     def push_installer(self) -> None:
         path = filedialog.askopenfilename(title="Выбери exe/msi/bat", filetypes=[("Programs", "*.exe;*.msi;*.bat")])
         if not path:
             return
-        rel = self._upload_deploy_file(Path(path))
+        name = self._upload_deploy_file(Path(path))
+        rel = f"deploy/{name}"
         for client_id in self.selected_client_ids():
             self.server.store.save_upload(client_id, rel, Path(path).read_bytes())
             self.server.store.enqueue([client_id], "run_file", {"relative_path": rel})
-        self.log(f"Установщик отправлен: {Path(path).name}")
+        self.log(f"Установщик отправлен: {name}")
         self.refresh_starter_pack_ui()
-
     def open_deploy(self) -> None:
         path = deploy_dir()
         path.mkdir(parents=True, exist_ok=True)

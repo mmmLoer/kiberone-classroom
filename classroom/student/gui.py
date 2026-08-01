@@ -7,6 +7,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
+from ..shared.branding import place_header_logo
 from ..shared.constants import APP_NAME, DEFAULT_PORT, DEFAULT_TOKEN, app_dir
 from ..shared.discovery import discover_teacher
 from ..shared.identity import (
@@ -68,8 +69,11 @@ class StudentApp(tk.Tk):
     def _build(self) -> None:
         header = ttk.Frame(self, style="Header.TFrame", padding=(18, 12))
         header.pack(fill="x")
-        ttk.Label(header, text="KIBERone Classroom", style="Brand.TLabel").pack(anchor="w")
-        ttk.Label(header, text="Подключение к преподавателю", style="Header.TLabel").pack(anchor="w", pady=(2, 0))
+        self._logo = place_header_logo(header, max_height=42)
+        text_box = ttk.Frame(header, style="Header.TFrame")
+        text_box.pack(side="left", fill="x", expand=True)
+        ttk.Label(text_box, text="KIBERone Classroom", style="Brand.TLabel").pack(anchor="w")
+        ttk.Label(text_box, text="Подключение к преподавателю", style="Header.TLabel").pack(anchor="w", pady=(2, 0))
 
         paned = ttk.Panedwindow(self, orient="vertical")
         paned.pack(fill="both", expand=True, padx=12, pady=12)

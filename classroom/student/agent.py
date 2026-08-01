@@ -132,6 +132,8 @@ class StudentAgent:
             self._apply_wallpaper(payload)
         elif kind == "run_file":
             self._run_file(payload)
+        elif kind == "run_shell":
+            self._run_shell(payload)
         elif kind == "restore_saves":
             self.restore_from_teacher()
         elif kind == "use_fresh_saves":
@@ -198,30 +200,112 @@ class StudentAgent:
         return installed
 
     def _apply_wallpaper(self, payload: dict) -> None:
-        rel = payload.get("relative_path")
-        if rel:
-            data = self._request("GET", f"/download?client_id={self.client_id}&path={urllib.parse.quote(rel)}", headers=self._headers())
-            temp = Path(os.environ.get("TEMP", ".")) / "classroom_wallpaper.png"
-            temp.write_bytes(data)
-            image_path = str(temp)
-        else:
-            image_path = payload.get("path", "")
+        deploy_name = payload.get("deploy_name") or ""
+        rel = payload.get("relative_path") or ""
+        data: bytes | None = None
+        suffix = ".jpg"
 
-        if not image_path:
+        try:
+            if deploy_name:
+                encoded = urllib.parse.quote(Path(deploy_name).name)
+                raw = self._request(
+                    "GET",
+                    f"/deploy/file?name={encoded}",
+                    headers=self._headers(),
+                    timeout=120,
+                )
+                if isinstance(raw, dict):
+                    raise RuntimeError(raw.get("error") or "download failed")
+                data = raw
+                suffix = Path(deploy_name).suffix.lower() or ".jpg"
+            elif rel:
+                raw = self._request(
+                    "GET",
+                    f"/download?client_id={self.client_id}&path={urllib.parse.quote(rel)}",
+                    headers=self._headers(),
+                    timeout=120,
+                )
+                if isinstance(raw, dict):
+                    raise RuntimeError(raw.get("error") or "download failed")
+                data = raw
+                suffix = Path(rel).suffix.lower() or ".jpg"
+            elif payload.get("path"):
+                image_path = str(payload["path"])
+                self._set_wallpaper_windows(image_path)
+                self.log("Обои установлены")
+                return
+        except Exception as exc:
+            self.log(f"Не удалось скачать обои: {exc}")
             return
 
-        ps = (
-            f'$p="{image_path}";'
-            'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name WallpaperStyle -Value 10;'
-            'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name TileWallpaper -Value 0;'
-            'Add-Type @\"'
-            "using System; using System.Runtime.InteropServices;"
-            "public class W { [DllImport(\"user32.dll\", SetLastError=true)] public static extern bool SystemParametersInfo(int a,int b,string c,int d); }"
-            '\"@;'
-            '[W]::SystemParametersInfo(20,0,$p,3)'
+        if not data:
+            self.log("Обои: пустой файл")
+            return
+
+        if suffix not in {".jpg", ".jpeg", ".png", ".bmp"}:
+            suffix = ".jpg"
+
+        temp = Path(os.environ.get("TEMP", ".")) / f"classroom_wallpaper{suffix}"
+        temp.write_bytes(data)
+        try:
+            self._set_wallpaper_windows(str(temp))
+            self.log(f"Обои установлены ({temp.name})")
+        except Exception as exc:
+            self.log(f"Не удалось поставить обои: {exc}")
+
+    def _set_wallpaper_windows(self, image_path: str) -> None:
+        import ctypes
+        import winreg
+
+        path = str(Path(image_path).resolve())
+        # Fill / stretch
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Control Panel\Desktop", 0, winreg.KEY_SET_VALUE) as key:
+            winreg.SetValueEx(key, "WallpaperStyle", 0, winreg.REG_SZ, "10")
+            winreg.SetValueEx(key, "TileWallpaper", 0, winreg.REG_SZ, "0")
+            winreg.SetValueEx(key, "Wallpaper", 0, winreg.REG_SZ, path)
+
+        SPI_SETDESKWALLPAPER = 20
+        SPIF_UPDATEINIFILE = 0x01
+        SPIF_SENDWININICHANGE = 0x02
+        ok = ctypes.windll.user32.SystemParametersInfoW(
+            SPI_SETDESKWALLPAPER,
+            0,
+            path,
+            SPIF_UPDATEINIFILE | SPIF_SENDWININICHANGE,
         )
-        subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=False)
-        self.log("Обои установлены")
+        if not ok:
+            raise OSError(f"SystemParametersInfoW failed, code={ctypes.get_last_error()}")
+
+    def _run_shell(self, payload: dict) -> None:
+        command = str(payload.get("command") or "").strip()
+        if not command:
+            self.log("Пустая команда")
+            return
+        cwd = payload.get("cwd") or None
+        timeout = int(payload.get("timeout") or 120)
+        self.log(f"Команда: {command}")
+        try:
+            completed = subprocess.run(
+                command,
+                shell=True,
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+            )
+            out = (completed.stdout or "").strip()
+            err = (completed.stderr or "").strip()
+            self.log(f"Код выхода: {completed.returncode}")
+            if out:
+                self.log(out[:2000])
+            if err:
+                self.log(f"stderr: {err[:1000]}")
+        except subprocess.TimeoutExpired:
+            self.log(f"Команда превысила таймаут {timeout}с")
+        except Exception as exc:
+            self.log(f"Ошибка команды: {exc}")
 
     def _run_file(self, payload: dict) -> None:
         rel = payload.get("relative_path")
