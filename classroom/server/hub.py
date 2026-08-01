@@ -17,7 +17,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from ..shared.constants import DEFAULT_TOKEN, default_backup_dir
 from ..shared.discovery import DiscoveryAnnouncer
-from ..shared.versions import HISTORY_DIR, archive_if_changed
+from ..shared.starter_pack import list_enabled_starter_pack, resolve_deploy_file
+from ..shared.versions import HISTORY_DIR, archive_if_changed, force_snapshot
 
 
 def safe_client_id(raw: str) -> str:
@@ -313,6 +314,22 @@ class ClassroomServer:
                         self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": str(exc)})
                         return
                     mime, _ = mimetypes.guess_type(relative)
+                    self._bytes(HTTPStatus.OK, data, mime or "application/octet-stream")
+                    return
+                if route == "/starter-pack":
+                    items = list_enabled_starter_pack()
+                    self._json(HTTPStatus.OK, {"ok": True, "items": items})
+                    return
+                if route == "/starter-pack/file":
+                    query = parse_qs(urlparse(self.path).query)
+                    try:
+                        name = query["name"][0]
+                        path = resolve_deploy_file(name)
+                        data = path.read_bytes()
+                    except (KeyError, ValueError, FileNotFoundError) as exc:
+                        self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": str(exc)})
+                        return
+                    mime, _ = mimetypes.guess_type(path.name)
                     self._bytes(HTTPStatus.OK, data, mime or "application/octet-stream")
                     return
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})

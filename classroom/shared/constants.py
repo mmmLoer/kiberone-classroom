@@ -22,13 +22,15 @@ COMMAND_TYPES = (
     "use_fresh_saves",
     "sync_now",
     "message",
+    "install_starter_pack",
 )
 
 
 def app_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parent.parent
+    # classroom/shared/constants.py -> корень репозитория
+    return Path(__file__).resolve().parent.parent.parent
 
 
 def config_path(name: str) -> Path:

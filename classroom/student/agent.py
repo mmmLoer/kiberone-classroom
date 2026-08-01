@@ -140,6 +140,62 @@ class StudentAgent:
             self.sync_once()
         elif kind == "message":
             self.log(f"Сообщение: {payload.get('text', '')}")
+        elif kind == "install_starter_pack":
+            names = payload.get("names")
+            self.install_starter_pack(names=names)
+
+    def fetch_starter_pack(self) -> list[dict]:
+        result = self._request("GET", "/starter-pack", headers=self._headers(), timeout=20)
+        return list(result.get("items") or [])
+
+    def download_starter_item(self, name: str) -> Path:
+        encoded = urllib.parse.quote(name)
+        data = self._request(
+            "GET",
+            f"/starter-pack/file?name={encoded}",
+            headers=self._headers(),
+            timeout=300,
+        )
+        if isinstance(data, dict):
+            raise RuntimeError(data.get("error") or "download failed")
+        temp_dir = Path(os.environ.get("TEMP", ".")) / "classroom_starter"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        local = temp_dir / Path(name).name
+        local.write_bytes(data)
+        return local
+
+    def install_starter_pack(self, names: list[str] | None = None) -> int:
+        items = self.fetch_starter_pack()
+        if names:
+            wanted = set(names)
+            items = [item for item in items if item.get("name") in wanted]
+        if not items:
+            self.log("Стартовый пак пуст")
+            return 0
+
+        installed = 0
+        for item in items:
+            name = item["name"]
+            title = item.get("title") or name
+            try:
+                self.log(f"Скачиваю: {title}")
+                local = self.download_starter_item(name)
+                self.log(f"Запускаю установщик: {title}")
+                suffix = local.suffix.lower()
+                if suffix == ".msi":
+                    subprocess.Popen(["msiexec", "/i", str(local)], shell=False)
+                elif suffix == ".ps1":
+                    subprocess.Popen(
+                        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(local)],
+                        shell=False,
+                    )
+                else:
+                    subprocess.Popen([str(local)], shell=True)
+                installed += 1
+            except Exception as exc:
+                self.log(f"Не удалось установить {title}: {exc}")
+        self.log(f"Стартовый пак: запущено установщиков {installed}/{len(items)}")
+        return installed
 
     def _apply_wallpaper(self, payload: dict) -> None:
         rel = payload.get("relative_path")

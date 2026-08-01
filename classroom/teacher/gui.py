@@ -9,6 +9,13 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from ..server.hub import ClassroomServer
 from ..shared.constants import APP_NAME, DEFAULT_PORT, DEFAULT_TOKEN, app_dir, default_backup_dir
+from ..shared.scrollable import ScrollableFrame
+from ..shared.starter_pack import (
+    deploy_dir,
+    list_deploy_installers,
+    load_starter_selection,
+    save_starter_selection,
+)
 from ..shared.theme import COLORS, append_log, apply_theme, make_log
 from ..shared.versions import list_client_files, list_file_versions, restore_version, snapshot_all
 
@@ -17,22 +24,25 @@ class TeacherApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f"{APP_NAME} — Преподаватель")
-        self.geometry("980x700")
-        self.minsize(880, 620)
+        self.geometry("1100x760")
+        self.minsize(760, 520)
+        self.resizable(True, True)
         apply_theme(self)
 
         self.server = ClassroomServer(port=DEFAULT_PORT, token=DEFAULT_TOKEN, backup_dir=default_backup_dir())
         self.server.on_event = lambda msg: self.after(0, self.log, msg)
         self.clients: list[dict] = []
+        self._pack_vars: dict[str, tk.BooleanVar] = {}
 
         self._build()
         self.server.start()
         self.log(f"IP этого компьютера: {self.server.local_ip()}")
         self.log(f"Папка учеников: {default_backup_dir()}")
+        self.refresh_starter_pack_ui()
         self.after(1500, self.refresh_clients)
 
     def _build(self) -> None:
-        header = ttk.Frame(self, style="Header.TFrame", padding=(18, 14))
+        header = ttk.Frame(self, style="Header.TFrame", padding=(18, 12))
         header.pack(fill="x")
         left_h = ttk.Frame(header, style="Header.TFrame")
         left_h.pack(side="left", fill="x", expand=True)
@@ -40,33 +50,44 @@ class TeacherApp(tk.Tk):
         ttk.Label(left_h, text="Управление классом по локальной сети", style="Header.TLabel").pack(anchor="w")
         ttk.Button(header, text="Обновить список", command=self.refresh_clients, style="Ghost.TButton").pack(side="right")
 
-        body = ttk.Frame(self, padding=14)
+        body = ttk.Frame(self, padding=12)
         body.pack(fill="both", expand=True)
 
-        paned = ttk.Panedwindow(body, orient="horizontal")
-        paned.pack(fill="both", expand=True)
+        hpaned = ttk.Panedwindow(body, orient="horizontal")
+        hpaned.pack(fill="both", expand=True)
 
-        left = ttk.Frame(paned, padding=(0, 0, 10, 0))
-        right = ttk.Frame(paned)
-        paned.add(left, weight=2)
-        paned.add(right, weight=3)
+        left = ttk.Frame(hpaned, padding=(0, 0, 8, 0))
+        right_wrap = ttk.Frame(hpaned)
+        hpaned.add(left, weight=2)
+        hpaned.add(right_wrap, weight=3)
 
         ttk.Label(left, text="Компьютеры", style="Title.TLabel").pack(anchor="w")
         list_card = ttk.Frame(left, style="Surface.TFrame", padding=8)
         list_card.pack(fill="both", expand=True, pady=(8, 0))
 
-        self.tree = ttk.Treeview(list_card, columns=("pc", "ip", "status", "id"), show="headings", height=18)
+        self.tree = ttk.Treeview(list_card, columns=("pc", "ip", "status", "id"), show="headings")
         for col, title, width in [("pc", "ПК", 55), ("ip", "IP", 110), ("status", "Статус", 80), ("id", "ID", 140)]:
             self.tree.heading(col, text=title)
-            self.tree.column(col, width=width, anchor="w")
+            self.tree.column(col, width=width, anchor="w", stretch=True)
         self.tree.pack(fill="both", expand=True)
         self.tree.tag_configure("online", foreground=COLORS["online"])
         self.tree.tag_configure("offline", foreground=COLORS["offline"])
-
         ttk.Button(left, text="Выбрать все online", command=self.select_online).pack(anchor="w", pady=(8, 0))
 
+        vpaned = ttk.Panedwindow(right_wrap, orient="vertical")
+        vpaned.pack(fill="both", expand=True)
+
+        actions_host = ttk.Frame(vpaned)
+        log_host = ttk.Frame(vpaned)
+        vpaned.add(actions_host, weight=3)
+        vpaned.add(log_host, weight=2)
+
+        scroll = ScrollableFrame(actions_host)
+        scroll.pack(fill="both", expand=True)
+        right = scroll.inner
+
         actions = ttk.LabelFrame(right, text="Действия", padding=12)
-        actions.pack(fill="x")
+        actions.pack(fill="x", padx=4, pady=(0, 8))
 
         ttk.Label(actions, text="Ссылка", style="Surface.TLabel").grid(row=0, column=0, sticky="w")
         self.url_var = tk.StringVar(value="https://www.python.org")
@@ -97,20 +118,95 @@ class TeacherApp(tk.Tk):
         actions.columnconfigure(1, weight=1)
         actions.columnconfigure(2, weight=1)
 
-        files_box = ttk.LabelFrame(right, text="Раздача файлов", padding=12)
-        files_box.pack(fill="x", pady=(12, 0))
-        ttk.Label(files_box, text="Положи установщики и обои в папку deploy", style="Muted.TLabel").pack(anchor="w")
-        ttk.Label(files_box, text=str(app_dir() / "deploy"), style="Mono.TLabel").pack(anchor="w", pady=(4, 8))
-        ttk.Button(files_box, text="Открыть папку deploy", command=self.open_deploy).pack(anchor="w")
+        pack = ttk.LabelFrame(right, text="Стартовый пак программ", padding=12)
+        pack.pack(fill="x", padx=4, pady=(0, 8))
+        ttk.Label(
+            pack,
+            text="Отметь установщики из папки deploy — ученики скачают их при начальной настройке",
+            style="Muted.TLabel",
+        ).pack(anchor="w")
+        ttk.Label(pack, text=str(deploy_dir()), style="Mono.TLabel").pack(anchor="w", pady=(4, 8))
 
-        ttk.Label(right, text="Журнал", style="Title.TLabel").pack(anchor="w", pady=(14, 6))
-        self.log_box = make_log(right, height=12)
+        pack_btns = ttk.Frame(pack, style="Surface.TFrame")
+        pack_btns.pack(fill="x", pady=(0, 8))
+        ttk.Button(pack_btns, text="Обновить список", command=self.refresh_starter_pack_ui).pack(side="left")
+        ttk.Button(pack_btns, text="Сохранить выбор", command=self.save_starter_pack, style="Accent.TButton").pack(
+            side="left", padx=8
+        )
+        ttk.Button(pack_btns, text="Отправить пак ученикам", command=self.push_starter_pack).pack(side="left")
+        ttk.Button(pack_btns, text="Открыть deploy", command=self.open_deploy, style="Ghost.TButton").pack(side="left", padx=8)
+
+        self.pack_list = ttk.Frame(pack, style="Surface.TFrame")
+        self.pack_list.pack(fill="x")
+
+        files_box = ttk.LabelFrame(right, text="Раздача файлов", padding=12)
+        files_box.pack(fill="x", padx=4, pady=(0, 8))
+        ttk.Label(files_box, text="Сюда же можно добавить новые .exe / .msi / .bat", style="Muted.TLabel").pack(anchor="w")
+        ttk.Button(files_box, text="Добавить установщик в deploy…", command=self.add_deploy_installer).pack(
+            anchor="w", pady=(8, 0)
+        )
+
+        ttk.Label(log_host, text="Журнал", style="Title.TLabel").pack(anchor="w", pady=(0, 6))
+        self.log_box = make_log(log_host, height=8)
         self.log_box.pack(fill="both", expand=True)
 
-        (app_dir() / "deploy").mkdir(parents=True, exist_ok=True)
+        deploy_dir().mkdir(parents=True, exist_ok=True)
 
     def log(self, message: str) -> None:
         append_log(self.log_box, message)
+
+    def refresh_starter_pack_ui(self) -> None:
+        for child in self.pack_list.winfo_children():
+            child.destroy()
+        self._pack_vars.clear()
+
+        selection = load_starter_selection()
+        enabled = set(selection.get("enabled") or [])
+        installers = list_deploy_installers()
+
+        if not installers:
+            ttk.Label(
+                self.pack_list,
+                text="В deploy пока нет .exe / .msi / .bat. Добавь установщики и нажми «Обновить список».",
+                style="Muted.TLabel",
+            ).pack(anchor="w")
+            return
+
+        for item in installers:
+            name = item["name"]
+            size_mb = item["size"] / (1024 * 1024)
+            var = tk.BooleanVar(value=name in enabled)
+            self._pack_vars[name] = var
+            row = ttk.Frame(self.pack_list, style="Surface.TFrame")
+            row.pack(fill="x", pady=2)
+            ttk.Checkbutton(row, text=f"{name}  ({size_mb:.1f} МБ)", variable=var).pack(side="left", anchor="w")
+
+    def save_starter_pack(self) -> None:
+        enabled = [name for name, var in self._pack_vars.items() if var.get()]
+        save_starter_selection(enabled)
+        self.log(f"Стартовый пак сохранён: {len(enabled)} программ")
+        messagebox.showinfo("Сохранено", f"В стартовый пак добавлено программ: {len(enabled)}")
+
+    def push_starter_pack(self) -> None:
+        enabled = [name for name, var in self._pack_vars.items() if var.get()]
+        if not enabled:
+            messagebox.showinfo("Пак пуст", "Отметь хотя бы одну программу и сохрани выбор.")
+            return
+        save_starter_selection(enabled)
+        self._send_command("install_starter_pack", {"names": enabled})
+
+    def add_deploy_installer(self) -> None:
+        path = filedialog.askopenfilename(
+            title="Добавить установщик",
+            filetypes=[("Installers", "*.exe;*.msi;*.bat;*.cmd;*.ps1"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        src = Path(path)
+        target = deploy_dir() / src.name
+        target.write_bytes(src.read_bytes())
+        self.log(f"Добавлен в deploy: {src.name}")
+        self.refresh_starter_pack_ui()
 
     def refresh_clients(self) -> None:
         self.clients = self.server.store.list_clients()
@@ -177,9 +273,7 @@ class TeacherApp(tk.Tk):
             self._send_command("message", {"text": text})
 
     def _upload_deploy_file(self, local_path: Path) -> str:
-        deploy_dir = app_dir() / "deploy"
-        deploy_dir.mkdir(parents=True, exist_ok=True)
-        target = deploy_dir / local_path.name
+        target = deploy_dir() / local_path.name
         target.write_bytes(local_path.read_bytes())
         return f"deploy/{local_path.name}"
 
@@ -203,11 +297,12 @@ class TeacherApp(tk.Tk):
             self.server.store.save_upload(client_id, rel, Path(path).read_bytes())
             self.server.store.enqueue([client_id], "run_file", {"relative_path": rel})
         self.log(f"Установщик отправлен: {Path(path).name}")
+        self.refresh_starter_pack_ui()
 
     def open_deploy(self) -> None:
-        deploy = app_dir() / "deploy"
-        deploy.mkdir(parents=True, exist_ok=True)
-        os.startfile(deploy)
+        path = deploy_dir()
+        path.mkdir(parents=True, exist_ok=True)
+        os.startfile(path)
 
     def open_student_folder(self) -> None:
         ids = list(self.tree.selection())
@@ -236,7 +331,8 @@ class HistoryWindow(tk.Toplevel):
         self.on_log = on_log
         self.title(f"История — {client_id}")
         self.geometry("820x540")
-        self.minsize(720, 460)
+        self.minsize(560, 360)
+        self.resizable(True, True)
         apply_theme(self)
 
         top = ttk.Frame(self, padding=14)
@@ -257,18 +353,18 @@ class HistoryWindow(tk.Toplevel):
         paned.add(right, weight=3)
 
         ttk.Label(left, text="Файлы ученика").pack(anchor="w")
-        self.files = ttk.Treeview(left, columns=("path", "n", "when"), show="headings", height=16)
+        self.files = ttk.Treeview(left, columns=("path", "n", "when"), show="headings")
         self.files.heading("path", text="Файл")
         self.files.heading("n", text="Версий")
         self.files.heading("when", text="Последний снимок")
-        self.files.column("path", width=260)
+        self.files.column("path", width=260, stretch=True)
         self.files.column("n", width=70)
         self.files.column("when", width=150)
         self.files.pack(fill="both", expand=True, pady=4)
         self.files.bind("<<TreeviewSelect>>", self._on_file_select)
 
         ttk.Label(right, text="Версии выбранного файла").pack(anchor="w")
-        self.versions = ttk.Treeview(right, columns=("when", "size", "label", "id"), show="headings", height=16)
+        self.versions = ttk.Treeview(right, columns=("when", "size", "label", "id"), show="headings")
         self.versions.heading("when", text="Когда")
         self.versions.heading("size", text="Размер")
         self.versions.heading("label", text="Метка")
@@ -276,7 +372,7 @@ class HistoryWindow(tk.Toplevel):
         self.versions.column("when", width=150)
         self.versions.column("size", width=70)
         self.versions.column("label", width=120)
-        self.versions.column("id", width=160)
+        self.versions.column("id", width=160, stretch=True)
         self.versions.pack(fill="both", expand=True, pady=4)
 
         self.empty_var = tk.StringVar()
@@ -349,9 +445,7 @@ class HistoryWindow(tk.Toplevel):
             self.versions.delete(item)
         versions = list_file_versions(self.client_root, self._current_file)
         if not versions:
-            self.empty_var.set(
-                f"У «{self._current_file}» ещё нет версий. Нажми «Сделать снимок сейчас»."
-            )
+            self.empty_var.set(f"У «{self._current_file}» ещё нет версий. Нажми «Сделать снимок сейчас».")
         else:
             self.empty_var.set("")
         for ver in versions:
