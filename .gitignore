@@ -1,0 +1,30 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual env / build
+.venv/
+venv/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# PyInstaller
+*.spec
+
+# Local runtime state
+config/
+classroom/config/
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Huge third-party installers (GitHub limit 100MB)
+deploy/GDevelop*.exe
+deploy/*.msi
+*.iso
