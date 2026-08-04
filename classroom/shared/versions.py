@@ -158,9 +158,119 @@ def force_snapshot(client_root: Path, relative: str, label: str = "") -> dict | 
     return entry
 
 
+def _commits_path(client_root: Path) -> Path:
+    return history_root(client_root) / "commits.json"
+
+
+def _load_commits(client_root: Path) -> list[dict]:
+    path = _commits_path(client_root)
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except json.JSONDecodeError:
+        return []
+
+
+def _save_commits(client_root: Path, commits: list[dict]) -> None:
+    root = history_root(client_root)
+    root.mkdir(parents=True, exist_ok=True)
+    _commits_path(client_root).write_text(json.dumps(commits, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def create_commit(client_root: Path, files: dict[str, dict], label: str = "снимок") -> dict | None:
+    """Создаёт git-подобный снимок: карта файл → version_id."""
+    if not files:
+        return None
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    commit = {
+        "id": f"{stamp}_{content_hash(json.dumps(files, sort_keys=True).encode('utf-8'))}",
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "label": label,
+        "files": files,
+    }
+    commits = _load_commits(client_root)
+    commits.insert(0, commit)
+    # лимит снимков
+    while len(commits) > 50:
+        commits.pop()
+    _save_commits(client_root, commits)
+    return commit
+
+
+def append_auto_commit(
+    client_root: Path,
+    relative: str,
+    version_id: str,
+    file_hash: str = "",
+    merge_window_sec: int = 120,
+) -> dict:
+    """Добавляет файл в последний авто-снимок (если свежий) или создаёт новый."""
+    relative = relative.replace("\\", "/").lstrip("/")
+    commits = _load_commits(client_root)
+    file_entry = {"version_id": version_id, "hash": file_hash}
+    if commits:
+        latest = commits[0]
+        if latest.get("label") == "авто":
+            try:
+                saved = datetime.fromisoformat(str(latest.get("saved_at", "")))
+                age = (datetime.now() - saved).total_seconds()
+            except ValueError:
+                age = merge_window_sec + 1
+            if age <= merge_window_sec:
+                files = dict(latest.get("files") or {})
+                files[relative] = file_entry
+                latest["files"] = files
+                latest["saved_at"] = datetime.now().isoformat(timespec="seconds")
+                _save_commits(client_root, commits)
+                return latest
+    return create_commit(client_root, {relative: file_entry}, label="авто") or {}
+
+
+def list_commits(client_root: Path) -> list[dict]:
+    commits = _load_commits(client_root)
+    result = []
+    for commit in commits:
+        files = commit.get("files") or {}
+        result.append(
+            {
+                "id": commit.get("id", ""),
+                "saved_at": commit.get("saved_at", ""),
+                "label": commit.get("label", ""),
+                "file_count": len(files),
+                "files": files,
+            }
+        )
+    return result
+
+
+def get_commit(client_root: Path, commit_id: str) -> dict | None:
+    for commit in _load_commits(client_root):
+        if commit.get("id") == commit_id:
+            return commit
+    return None
+
+
+def restore_commit(client_root: Path, commit_id: str) -> list[str]:
+    """Восстанавливает все файлы снимка. Возвращает список восстановленных путей."""
+    commit = get_commit(client_root, commit_id)
+    if not commit:
+        raise FileNotFoundError(f"Снимок не найден: {commit_id}")
+    restored: list[str] = []
+    for relative, meta in (commit.get("files") or {}).items():
+        version_id = meta.get("version_id") if isinstance(meta, dict) else meta
+        if not version_id:
+            continue
+        restore_version(client_root, relative, str(version_id))
+        restored.append(relative)
+    return restored
+
+
 def snapshot_all(client_root: Path, label: str = "ручной снимок") -> int:
     """Создаёт снимок всех текущих файлов ученика. Возвращает число новых версий."""
     count = 0
+    file_map: dict[str, dict] = {}
     if not client_root.exists():
         return 0
     for path in client_root.rglob("*"):
@@ -169,8 +279,20 @@ def snapshot_all(client_root: Path, label: str = "ручной снимок") ->
         rel = path.relative_to(client_root)
         if HISTORY_DIR in rel.parts:
             continue
-        if force_snapshot(client_root, rel.as_posix(), label=label):
+        relative = rel.as_posix()
+        entry = force_snapshot(client_root, relative, label=label)
+        if entry:
             count += 1
+            file_map[relative] = {"version_id": entry["id"], "hash": entry.get("hash", "")}
+        else:
+            versions = list_file_versions(client_root, relative)
+            if versions:
+                file_map[relative] = {
+                    "version_id": versions[0]["id"],
+                    "hash": versions[0].get("hash", ""),
+                }
+    if file_map:
+        create_commit(client_root, file_map, label=label)
     return count
 
 

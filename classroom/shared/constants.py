@@ -7,23 +7,28 @@ import sys
 from pathlib import Path
 
 APP_NAME = "KIBERone Classroom"
+APP_VERSION = "1.2.0"
 DEFAULT_PORT = 8765
 DISCOVERY_PORT = 8766
 DEFAULT_TOKEN = "kiberone-sync-2026"
 DEFAULT_FOLDER_NAME = "Ученики"
 POLL_SECONDS = 3
-SYNC_SECONDS = 60
+SYNC_SECONDS = 300  # по умолчанию раз в 5 минут
 
 COMMAND_TYPES = (
     "open_url",
     "set_wallpaper",
     "run_file",
     "run_shell",
+    "run_script",
     "restore_saves",
     "use_fresh_saves",
     "sync_now",
     "message",
+    "set_pc_number",
+    "configure",
     "install_starter_pack",
+    "offer_update",
 )
 
 

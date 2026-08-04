@@ -1,4 +1,4 @@
-"""Клиент ученика: синхронизация, heartbeat, выполнение команд."""
+﻿"""Клиент ученика: синхронизация, heartbeat, выполнение команд."""
 
 from __future__ import annotations
 
@@ -15,8 +15,11 @@ import webbrowser
 from pathlib import Path
 from typing import Callable
 
-from ..shared.constants import DEFAULT_TOKEN, POLL_SECONDS, SYNC_SECONDS, expand_path
-from ..shared.identity import get_mac_id, get_pc_number, get_watch_folder
+from ..shared.constants import APP_VERSION, DEFAULT_TOKEN, POLL_SECONDS, SYNC_SECONDS, expand_path
+from ..shared.identity import get_mac_id, get_pc_number, get_watch_folder, set_pc_number
+from ..shared.settings import clamp_sync_seconds
+from ..shared.scripts import script_extension
+from ..shared.updates import file_sha256, schedule_exe_replace, version_newer
 
 
 class StudentAgent:
@@ -28,6 +31,9 @@ class StudentAgent:
         watch_folder: str | None = None,
         fresh_saves_dir: Path | None = None,
         on_log: Callable[[str], None] | None = None,
+        on_message: Callable[[str], None] | None = None,
+        on_pc_number_changed: Callable[[str], None] | None = None,
+        on_update_available: Callable[[dict], None] | None = None,
     ):
         self.teacher_host = teacher_host.strip()
         self.port = port
@@ -36,6 +42,12 @@ class StudentAgent:
         self.watch_folder = expand_path(watch_folder or get_watch_folder(str(Path.home() / "Desktop")))
         self.fresh_saves_dir = fresh_saves_dir
         self.on_log = on_log or (lambda msg: None)
+        self.on_message = on_message or (lambda text: self.on_log(f"Сообщение: {text}"))
+        self.on_pc_number_changed = on_pc_number_changed or (lambda _n: None)
+        self.on_update_available = on_update_available or (lambda _info: None)
+        self.sync_seconds = SYNC_SECONDS
+        self.app_version = APP_VERSION
+        self._notified_update_version: str | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._state_path = Path(os.environ.get("TEMP", ".")) / f"classroom_sync_{self.client_id}.json"
@@ -68,15 +80,35 @@ class StudentAgent:
             headers.update(extra)
         return headers
 
-    def _request(self, method: str, path: str, data: bytes | None = None, headers: dict | None = None, timeout: int = 15):
+    def _request(
+        self,
+        method: str,
+        path: str,
+        data: bytes | None = None,
+        headers: dict | None = None,
+        timeout: int = 15,
+        raw: bool = False,
+    ):
         url = f"{self.base_url}{path}"
+        if data is not None and not isinstance(data, (bytes, bytearray, memoryview)):
+            raise TypeError(f"request data must be bytes, got {type(data).__name__}")
         req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "")
             body = resp.read()
-            if "application/json" in content_type:
+            if not raw and "application/json" in content_type:
                 return json.loads(body.decode("utf-8"))
             return body
+
+    @staticmethod
+    def _as_bytes(data) -> bytes:
+        if isinstance(data, (bytes, bytearray)):
+            return bytes(data)
+        if isinstance(data, memoryview):
+            return data.tobytes()
+        if isinstance(data, dict):
+            raise TypeError("ожидались байты файла, пришёл JSON (dict)")
+        raise TypeError(f"ожидались байты файла, пришло {type(data).__name__}")
 
     def ping(self) -> bool:
         try:
@@ -91,12 +123,21 @@ class StudentAgent:
             try:
                 self._heartbeat()
                 self._poll_commands()
-                if time.time() - last_sync >= SYNC_SECONDS:
+                if time.time() - last_sync >= self.sync_seconds:
                     self.sync_once()
                     last_sync = time.time()
             except Exception as exc:
                 self.log(f"Ошибка: {exc}")
             self._stop.wait(POLL_SECONDS)
+
+    def _apply_settings(self, settings: dict | None) -> None:
+        if not settings:
+            return
+        if "sync_seconds" in settings:
+            new_value = clamp_sync_seconds(settings.get("sync_seconds"))
+            if new_value != self.sync_seconds:
+                self.sync_seconds = new_value
+                self.log(f"Интервал синхронизации: {self.sync_seconds} с")
 
     def _heartbeat(self) -> None:
         payload = json.dumps(
@@ -105,14 +146,90 @@ class StudentAgent:
                 "pc_number": get_pc_number(),
                 "hostname": socket.gethostname(),
                 "watch_folder": str(self.watch_folder),
+                "app_version": self.app_version,
             }
         ).encode("utf-8")
-        self._request(
+        result = self._request(
             "POST",
             "/heartbeat",
             data=payload,
             headers={**self._headers(), "Content-Type": "application/json"},
         )
+        if isinstance(result, dict):
+            self._apply_settings(result.get("settings"))
+            self._maybe_notify_update(result.get("student_update"))
+
+    def _maybe_notify_update(self, info: dict | None) -> None:
+        if not info or not isinstance(info, dict):
+            return
+        remote = str(info.get("version") or "")
+        if not remote or not version_newer(remote, self.app_version):
+            return
+        if self._notified_update_version == remote:
+            return
+        self._notified_update_version = remote
+        self.log(f"Доступно обновление: {remote} (сейчас {self.app_version})")
+        self.on_update_available(info)
+
+    def check_for_update(self) -> dict | None:
+        result = self._request("GET", "/update/student", headers=self._headers(), timeout=20)
+        info = result.get("update") if isinstance(result, dict) else None
+        if info and version_newer(str(info.get("version") or ""), self.app_version):
+            return info
+        return None
+
+    def download_student_update(self, expected_sha256: str = "") -> Path:
+        data = self._request(
+            "GET",
+            "/update/student/file",
+            headers=self._headers(),
+            timeout=600,
+            raw=True,
+        )
+        if isinstance(data, dict):
+            raise RuntimeError(data.get("error") or "download failed")
+        data = self._as_bytes(data)
+        temp_dir = Path(os.environ.get("TEMP", ".")) / "classroom_update"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        local = temp_dir / f"KIBERoneStudent_{self.client_id}.exe"
+        local.write_bytes(data)
+        if expected_sha256:
+            digest = file_sha256(local)
+            if digest.lower() != expected_sha256.lower():
+                local.unlink(missing_ok=True)
+                raise RuntimeError("Хеш скачанного файла не совпал")
+        return local
+
+    def apply_downloaded_update(self, local_exe: Path) -> None:
+        schedule_exe_replace(local_exe)
+        self.log("Обновление подготовлено — перезапуск…")
+
+    def fetch_scripts(self) -> dict:
+        return self._request("GET", "/scripts", headers=self._headers(), timeout=20)
+
+    def run_script_local(self, name: str, content: str, kind: str = "bat") -> None:
+        self._run_script({"name": name, "content": content, "kind": kind})
+
+    def _run_script(self, payload: dict) -> None:
+        name = str(payload.get("name") or "script").strip() or "script"
+        content = str(payload.get("content") or "")
+        kind = str(payload.get("kind") or "bat").lower()
+        if not content.strip():
+            self.log("Скрипт пустой")
+            return
+        temp_dir = Path(os.environ.get("TEMP", ".")) / "classroom_scripts"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in name)[:40]
+        script_path = temp_dir / f"{safe}{script_extension(kind)}"
+        script_path.write_text(content, encoding="utf-8", errors="replace")
+        self.log(f"Запускаю скрипт: {name}")
+        if kind == "ps1":
+            subprocess.Popen(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
+                shell=False,
+            )
+        else:
+            subprocess.Popen(["cmd", "/c", str(script_path)], shell=False)
 
     def _poll_commands(self) -> None:
         result = self._request("GET", f"/commands?client_id={self.client_id}", headers=self._headers())
@@ -134,6 +251,17 @@ class StudentAgent:
             self._run_file(payload)
         elif kind == "run_shell":
             self._run_shell(payload)
+        elif kind == "run_script":
+            self._run_script(payload)
+        elif kind == "configure":
+            self._apply_settings(payload)
+        elif kind == "offer_update":
+            info = payload if payload.get("version") else self.check_for_update()
+            if info:
+                self._notified_update_version = None
+                self._maybe_notify_update(info)
+            else:
+                self.log("Обновлений нет")
         elif kind == "restore_saves":
             self.restore_from_teacher()
         elif kind == "use_fresh_saves":
@@ -141,7 +269,21 @@ class StudentAgent:
         elif kind == "sync_now":
             self.sync_once()
         elif kind == "message":
-            self.log(f"Сообщение: {payload.get('text', '')}")
+            text = str(payload.get("text") or "").strip()
+            if text:
+                self.log(f"Сообщение: {text}")
+                self.on_message(text)
+        elif kind == "set_pc_number":
+            number = str(payload.get("pc_number") or "").strip()
+            if number:
+                set_pc_number(number)
+                self.log(f"Номер ПК изменён: {number}")
+                self.on_pc_number_changed(number)
+                # сразу сообщим тьютору новый номер
+                try:
+                    self._heartbeat()
+                except Exception:
+                    pass
         elif kind == "install_starter_pack":
             names = payload.get("names")
             self.install_starter_pack(names=names)
@@ -157,13 +299,14 @@ class StudentAgent:
             f"/starter-pack/file?name={encoded}",
             headers=self._headers(),
             timeout=300,
+            raw=True,
         )
         if isinstance(data, dict):
             raise RuntimeError(data.get("error") or "download failed")
         temp_dir = Path(os.environ.get("TEMP", ".")) / "classroom_starter"
         temp_dir.mkdir(parents=True, exist_ok=True)
         local = temp_dir / Path(name).name
-        local.write_bytes(data)
+        local.write_bytes(self._as_bytes(data))
         return local
 
     def install_starter_pack(self, names: list[str] | None = None) -> int:
@@ -213,10 +356,11 @@ class StudentAgent:
                     f"/deploy/file?name={encoded}",
                     headers=self._headers(),
                     timeout=120,
+                    raw=True,
                 )
                 if isinstance(raw, dict):
                     raise RuntimeError(raw.get("error") or "download failed")
-                data = raw
+                data = self._as_bytes(raw)
                 suffix = Path(deploy_name).suffix.lower() or ".jpg"
             elif rel:
                 raw = self._request(
@@ -224,10 +368,11 @@ class StudentAgent:
                     f"/download?client_id={self.client_id}&path={urllib.parse.quote(rel)}",
                     headers=self._headers(),
                     timeout=120,
+                    raw=True,
                 )
                 if isinstance(raw, dict):
                     raise RuntimeError(raw.get("error") or "download failed")
-                data = raw
+                data = self._as_bytes(raw)
                 suffix = Path(rel).suffix.lower() or ".jpg"
             elif payload.get("path"):
                 image_path = str(payload["path"])
@@ -310,11 +455,16 @@ class StudentAgent:
     def _run_file(self, payload: dict) -> None:
         rel = payload.get("relative_path")
         if rel:
-            data = self._request("GET", f"/download?client_id={self.client_id}&path={urllib.parse.quote(rel)}", headers=self._headers())
+            data = self._request(
+                "GET",
+                f"/download?client_id={self.client_id}&path={urllib.parse.quote(rel)}",
+                headers=self._headers(),
+                raw=True,
+            )
             temp_dir = Path(os.environ.get("TEMP", ".")) / "classroom_install"
             temp_dir.mkdir(parents=True, exist_ok=True)
             local = temp_dir / Path(rel).name
-            local.write_bytes(data)
+            local.write_bytes(self._as_bytes(data))
             path = str(local)
         else:
             path = payload.get("path", "")
@@ -341,10 +491,15 @@ class StudentAgent:
             return
         for item in files:
             rel = item["path"]
-            data = self._request("GET", f"/download?client_id={self.client_id}&path={urllib.parse.quote(rel)}", headers=self._headers())
+            data = self._request(
+                "GET",
+                f"/download?client_id={self.client_id}&path={urllib.parse.quote(rel)}",
+                headers=self._headers(),
+                raw=True,
+            )
             local = self.watch_folder / rel
             local.parent.mkdir(parents=True, exist_ok=True)
-            local.write_bytes(data)
+            local.write_bytes(self._as_bytes(data))
         self.log(f"Загружено файлов: {len(files)}")
 
     def _load_state(self) -> dict:

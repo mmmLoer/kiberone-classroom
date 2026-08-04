@@ -10,7 +10,9 @@ from classroom.shared.versions import (
     force_snapshot,
     list_all_versioned_files,
     list_client_files,
+    list_commits,
     list_file_versions,
+    restore_commit,
     restore_version,
     snapshot_all,
 )
@@ -83,3 +85,20 @@ def test_list_all_versioned_files(tmp_path: Path):
     paths = {row["path"] for row in rows}
     assert "a.py" in paths
     assert "subdir/b.py" in paths
+
+
+def test_snapshot_creates_commit_and_restore_all(tmp_path: Path):
+    (tmp_path / "a.txt").write_text("a1", encoding="utf-8")
+    (tmp_path / "b.txt").write_text("b1", encoding="utf-8")
+    assert snapshot_all(tmp_path, label="урок") == 2
+    commits = list_commits(tmp_path)
+    assert len(commits) == 1
+    assert commits[0]["label"] == "урок"
+    assert commits[0]["file_count"] == 2
+
+    (tmp_path / "a.txt").write_text("a2", encoding="utf-8")
+    (tmp_path / "b.txt").write_text("b2", encoding="utf-8")
+    restored = restore_commit(tmp_path, commits[0]["id"])
+    assert set(restored) == {"a.txt", "b.txt"}
+    assert (tmp_path / "a.txt").read_text(encoding="utf-8") == "a1"
+    assert (tmp_path / "b.txt").read_text(encoding="utf-8") == "b1"

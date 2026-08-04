@@ -1,4 +1,4 @@
-"""Стартовый пак программ для начальной настройки учеников."""
+﻿"""Стартовый пак программ для начальной настройки учеников."""
 
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def save_starter_selection(enabled: list[str], titles: dict[str, str] | None = N
 
 
 def list_enabled_starter_pack() -> list[dict]:
-    """Только отмеченные преподавателем установщики."""
+    """Только отмеченные тьютором установщики."""
     selection = load_starter_selection()
     enabled = set(selection.get("enabled") or [])
     titles = selection.get("titles") or {}

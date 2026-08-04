@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import socket
 import uuid
+from pathlib import Path
 
-from .constants import config_path
+from .constants import app_dir, config_path
 
 
 def get_mac_id() -> str:
@@ -26,18 +27,33 @@ def get_mac_id() -> str:
         return "UNKNOWN"
 
 
+def _student_state_path() -> Path:
+    """Локальные настройки ученика — рядом с программой, не в config/."""
+    return app_dir() / "student.json"
+
+
 def _load_local() -> dict:
-    path = config_path("student_local.json")
+    path = _student_state_path()
+    # миграция со старого config/student_local.json
     if not path.exists():
+        legacy = config_path("student_local.json")
+        if legacy.exists():
+            try:
+                data = json.loads(legacy.read_text(encoding="utf-8"))
+                _save_local(data if isinstance(data, dict) else {})
+                return _load_local()
+            except json.JSONDecodeError:
+                pass
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
     except json.JSONDecodeError:
         return {}
 
 
 def _save_local(data: dict) -> None:
-    path = config_path("student_local.json")
+    path = _student_state_path()
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -74,5 +90,5 @@ def set_watch_folder(folder: str) -> None:
 def client_label(mac_id: str) -> str:
     number = get_pc_number()
     if number:
-        return f"ПК {number} ({mac_id[:6]})"
+        return f"ПК {number}"
     return mac_id

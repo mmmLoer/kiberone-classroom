@@ -27,6 +27,14 @@ def safe_client_id(raw: str) -> str:
     return cleaned or "unknown"
 
 
+def safe_pc_folder(pc_number: str) -> str:
+    """Имя папки ученика по номеру ПК: ПК-3."""
+    cleaned = "".join(ch for ch in str(pc_number).strip() if ch.isalnum() or ch in "-_")
+    if not cleaned:
+        return ""
+    return f"ПК-{cleaned}"
+
+
 def safe_relative_path(raw: str) -> str:
     relative = unquote(raw).replace("\\", "/").lstrip("/")
     if not relative or ".." in relative.split("/"):
@@ -64,14 +72,41 @@ class ClassroomStore:
         self.broadcast_pending: list[Command] = []
         self.lock = threading.RLock()
         self.backup_root.mkdir(parents=True, exist_ok=True)
+        from ..shared.settings import load_teacher_settings
+
+        self.settings = load_teacher_settings()
+
+    def get_settings(self) -> dict:
+        with self.lock:
+            return dict(self.settings)
+
+    def update_settings(self, patch: dict) -> dict:
+        from ..shared.settings import clamp_sync_seconds, save_teacher_settings
+
+        with self.lock:
+            if "sync_seconds" in patch:
+                self.settings["sync_seconds"] = clamp_sync_seconds(patch["sync_seconds"])
+            self.settings = save_teacher_settings(self.settings)
+            return dict(self.settings)
 
     def client_root(self, client_id: str) -> Path:
-        return (self.backup_root / safe_client_id(client_id)).resolve()
+        """Папка ученика на диске — по номеру ПК (не по MAC)."""
+        client_id = safe_client_id(client_id)
+        with self.lock:
+            info = self.clients.get(client_id)
+            pc = (info.pc_number if info else "") or ""
+        folder = safe_pc_folder(pc)
+        if not folder:
+            folder = f"_без_номера_{client_id}"
+        return (self.backup_root / folder).resolve()
 
     def register_heartbeat(self, client_id: str, payload: dict, ip: str) -> None:
+        client_id = safe_client_id(client_id)
         with self.lock:
             info = self.clients.get(client_id) or ClientInfo(client_id=client_id)
-            info.pc_number = str(payload.get("pc_number", info.pc_number))
+            old_pc = info.pc_number
+            new_pc = str(payload.get("pc_number", info.pc_number) or "").strip()
+            info.pc_number = new_pc
             info.hostname = str(payload.get("hostname", info.hostname))
             info.watch_folder = str(payload.get("watch_folder", info.watch_folder))
             info.ip = ip
@@ -79,6 +114,8 @@ class ClassroomStore:
             info.status = "online"
             info.extra = payload.get("extra", {})
             self.clients[client_id] = info
+        if new_pc and new_pc != old_pc:
+            self._migrate_client_folder(client_id, old_pc, new_pc)
 
     def list_clients(self) -> list[dict]:
         now = time.time()
@@ -99,6 +136,46 @@ class ClassroomStore:
                 )
             result.sort(key=lambda item: (item["pc_number"] or "999", item["client_id"]))
             return result
+
+    def _migrate_client_folder(self, client_id: str, old_pc: str, new_pc: str) -> None:
+        """Переименовывает папку при смене номера ПК."""
+        import shutil
+
+        old_name = safe_pc_folder(old_pc) if old_pc else f"_без_номера_{safe_client_id(client_id)}"
+        new_name = safe_pc_folder(new_pc)
+        if not new_name or old_name == new_name:
+            return
+        old_path = (self.backup_root / old_name).resolve()
+        new_path = (self.backup_root / new_name).resolve()
+        if not old_path.exists():
+            new_path.mkdir(parents=True, exist_ok=True)
+            return
+        if new_path.exists():
+            for path in old_path.rglob("*"):
+                if not path.is_file():
+                    continue
+                rel = path.relative_to(old_path)
+                target = new_path / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+            return
+        try:
+            old_path.rename(new_path)
+        except OSError:
+            shutil.copytree(old_path, new_path)
+
+    def set_client_pc_number(self, client_id: str, pc_number: str) -> bool:
+        client_id = safe_client_id(client_id)
+        with self.lock:
+            info = self.clients.get(client_id)
+            if not info:
+                return False
+            old_pc = info.pc_number
+            info.pc_number = str(pc_number).strip()
+            new_pc = info.pc_number
+        if new_pc != old_pc:
+            self._migrate_client_folder(client_id, old_pc, new_pc)
+        return True
 
     def enqueue(self, client_ids: list[str], kind: str, payload: dict | None = None) -> int:
         payload = payload or {}
@@ -163,7 +240,7 @@ class ClassroomStore:
         return files
 
     def save_upload(self, client_id: str, relative: str, data: bytes) -> Path:
-        from ..shared.versions import force_snapshot
+        from ..shared.versions import append_auto_commit, force_snapshot
 
         root = self.client_root(client_id)
         relative = relative.replace("\\", "/")
@@ -177,6 +254,12 @@ class ClassroomStore:
                 archived = archive_if_changed(root, relative, data)
                 if archived:
                     self._note_version(client_id, relative, archived)
+                    append_auto_commit(
+                        root,
+                        relative,
+                        archived["id"],
+                        file_hash=str(archived.get("hash") or ""),
+                    )
 
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
@@ -186,6 +269,12 @@ class ClassroomStore:
             snap = force_snapshot(root, relative, label="первая загрузка")
             if snap:
                 self._note_version(client_id, relative, snap)
+                append_auto_commit(
+                    root,
+                    relative,
+                    snap["id"],
+                    file_hash=str(snap.get("hash") or ""),
+                )
         return target
 
     def _note_version(self, client_id: str, relative: str, archived: dict) -> None:
@@ -219,6 +308,8 @@ class ClassroomServer:
     def start(self) -> None:
         if self.httpd:
             return
+
+        # Сначала сеть и автопоиск — обновления не должны их блокировать
         handler = self._make_handler()
         self.httpd = ThreadingHTTPServer((self.host, self.port), handler)
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
@@ -234,6 +325,27 @@ class ClassroomServer:
         )
         self.discovery.start()
         self._log(f"Сервер запущен на порту {self.port}")
+
+        threading.Thread(target=self._post_start_setup, daemon=True, name="post-start").start()
+
+    def _post_start_setup(self) -> None:
+        try:
+            from ..shared.discovery import ensure_firewall_rules
+
+            ensure_firewall_rules(on_log=self._log)
+        except Exception as exc:
+            self._log(f"Firewall: {exc}")
+        try:
+            from ..shared.updates import ensure_updates_seeded, get_update_info
+
+            ensure_updates_seeded()
+            info = get_update_info()
+            if info:
+                self._log(f"Обновление ученика: v{info.get('version')} ({info.get('size', 0)} байт)")
+            else:
+                self._log("Обновление ученика: пакет ещё не опубликован (Настройки → Обновления)")
+        except Exception as exc:
+            self._log(f"Пакет обновления: пропуск ({exc})")
 
     def stop(self) -> None:
         if self.discovery:
@@ -293,7 +405,58 @@ class ClassroomServer:
                     return
                 route = urlparse(self.path).path
                 if route == "/health":
-                    self._json(HTTPStatus.OK, {"ok": True})
+                    from ..shared.updates import get_update_info
+
+                    self._json(
+                        HTTPStatus.OK,
+                        {"ok": True, "settings": store.get_settings(), "student_update": get_update_info()},
+                    )
+                    return
+                if route == "/settings":
+                    self._json(HTTPStatus.OK, {"ok": True, "settings": store.get_settings()})
+                    return
+                if route == "/update/student":
+                    from ..shared.constants import APP_VERSION
+                    from ..shared.updates import get_update_info
+
+                    info = get_update_info()
+                    self._json(
+                        HTTPStatus.OK,
+                        {
+                            "ok": True,
+                            "available": bool(info),
+                            "update": info,
+                            "server_app_version": APP_VERSION,
+                        },
+                    )
+                    return
+                if route == "/update/student/file":
+                    from ..shared.updates import STUDENT_EXE_NAME, read_student_exe_bytes
+
+                    try:
+                        data = read_student_exe_bytes()
+                    except FileNotFoundError as exc:
+                        self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": str(exc)})
+                        return
+                    self.send_response(HTTPStatus.OK)
+                    self.send_header("Content-Type", "application/octet-stream")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.send_header("Content-Disposition", f'attachment; filename="{STUDENT_EXE_NAME}"')
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+                if route == "/scripts":
+                    from ..shared.scripts import load_scripts, public_presets
+
+                    data = load_scripts()
+                    self._json(
+                        HTTPStatus.OK,
+                        {
+                            "ok": True,
+                            "selected": data.get("selected"),
+                            "presets": public_presets(),
+                        },
+                    )
                     return
                 if route == "/clients":
                     self._json(HTTPStatus.OK, {"ok": True, "clients": store.list_clients()})
@@ -315,7 +478,11 @@ class ClassroomServer:
                         self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": str(exc)})
                         return
                     mime, _ = mimetypes.guess_type(relative)
-                    self._bytes(HTTPStatus.OK, data, mime or "application/octet-stream")
+                    # всегда байты: иначе .json на клиенте парсится как dict
+                    content_type = mime or "application/octet-stream"
+                    if "json" in (content_type or "").lower():
+                        content_type = "application/octet-stream"
+                    self._bytes(HTTPStatus.OK, data, content_type)
                     return
                 if route == "/starter-pack":
                     items = list_enabled_starter_pack()
@@ -355,10 +522,38 @@ class ClassroomServer:
                 length = int(self.headers.get("Content-Length", "0"))
                 body = self.rfile.read(length) if length else b"{}"
                 if route == "/heartbeat":
+                    from ..shared.constants import APP_VERSION
+                    from ..shared.updates import get_update_info, update_available_for
+
                     payload = json.loads(body.decode("utf-8") or "{}")
                     client_id = safe_client_id(payload.get("client_id", ""))
                     store.register_heartbeat(client_id, payload, self.client_address[0])
-                    self._json(HTTPStatus.OK, {"ok": True})
+                    client_version = str(payload.get("app_version") or "")
+                    update = None
+                    if client_version:
+                        update = update_available_for(client_version)
+                    else:
+                        # без версии клиента — всё равно отдадим манифест
+                        update = get_update_info()
+                    self._json(
+                        HTTPStatus.OK,
+                        {
+                            "ok": True,
+                            "settings": store.get_settings(),
+                            "student_update": update,
+                            "server_app_version": APP_VERSION,
+                        },
+                    )
+                    return
+                if route == "/settings":
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    updated = store.update_settings(payload)
+                    # сразу раздадим ученикам
+                    online = [c["client_id"] for c in store.list_clients() if c.get("status") == "online"]
+                    if online:
+                        store.enqueue(online, "configure", {"sync_seconds": updated.get("sync_seconds")})
+                    log(f"Настройки обновлены: sync={updated.get('sync_seconds')}с")
+                    self._json(HTTPStatus.OK, {"ok": True, "settings": updated})
                     return
                 if route == "/upload":
                     try:
