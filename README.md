@@ -15,11 +15,9 @@
 | Тьютор (Mac) | [`dist/KIBERoneTutor.app`](dist/KIBERoneTutor.app) | Mac тьютора (Apple Silicon) |
 | Ученик | [`dist/KIBERoneStudent.exe`](dist/KIBERoneStudent.exe) | Каждый ученический ПК |
 
-Пересобрать Mac‑версию заново (после изменений в коде) — `./build_mac.sh` (только на самом Mac).
-
 ---
 
-## Как провести урок (коротко)
+## Как провести урок
 
 1. На своём ПК запусти **KIBERoneTutor**. В журнале появится IP и «автопоиск включён».
 2. Если Windows спросит доступ к сети — разреши (нужны порты 8765–8767).
