@@ -11,10 +11,11 @@
 
 | Кто | Файл | Куда |
 |-----|------|------|
-| Тьютор | [`dist/KIBERoneTutor.exe`](dist/KIBERoneTutor.exe) | Ноут / ПК тьютора |
+| Тьютор (Windows) | [`dist/KIBERoneTutor.exe`](dist/KIBERoneTutor.exe) | Ноут / ПК тьютора |
+| Тьютор (Mac) | [`dist/KIBERoneTutor.app`](dist/KIBERoneTutor.app) | Mac тьютора (Apple Silicon) |
 | Ученик | [`dist/KIBERoneStudent.exe`](dist/KIBERoneStudent.exe) | Каждый ученический ПК |
 
-На Mac тьютора — сборка через `./build_mac.sh` (только на самом Mac).
+Пересобрать Mac‑версию заново (после изменений в коде) — `./build_mac.sh` (только на самом Mac).
 
 ---
 
