@@ -42,3 +42,9 @@ deploy/*.msi
 dist/deploy/*.exe
 dist/deploy/*.msi
 *.iso
+
+# random photos / personal dumps
+deploy/*.jpg
+deploy/*.jpeg
+deploy/*.png
+deploy/*.webp
