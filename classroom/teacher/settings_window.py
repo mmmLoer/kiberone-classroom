@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from ..shared.constants import APP_VERSION, app_dir
+from ..shared.osutil import file_type_filters, open_in_os
 from ..shared.scripts import (
     add_preset_from_file,
     get_preset,
@@ -177,7 +177,7 @@ class SettingsWindow(tk.Toplevel):
         path = filedialog.askopenfilename(
             parent=self,
             title="EXE ученика",
-            filetypes=[("EXE", "*.exe"), ("All", "*.*")],
+            filetypes=file_type_filters("EXE", "*.exe"),
         )
         if path:
             self._publish(Path(path))
@@ -209,7 +209,7 @@ class SettingsWindow(tk.Toplevel):
     def open_updates_folder(self) -> None:
         folder = updates_dir()
         folder.mkdir(parents=True, exist_ok=True)
-        os.startfile(folder)
+        open_in_os(folder)
 
     def _build_scripts(self, parent: ttk.Frame) -> None:
         ttk.Label(parent, text="Пресеты скриптов запуска", style="Title.TLabel").pack(anchor="w")
@@ -256,7 +256,7 @@ class SettingsWindow(tk.Toplevel):
         path = filedialog.askopenfilename(
             parent=self,
             title="Добавить скрипт",
-            filetypes=[("Scripts", "*.bat;*.cmd;*.ps1"), ("All", "*.*")],
+            filetypes=file_type_filters("Scripts", "*.bat", "*.cmd", "*.ps1"),
         )
         if not path:
             return
@@ -376,19 +376,23 @@ class SettingsWindow(tk.Toplevel):
     def open_deploy(self) -> None:
         folder = deploy_dir()
         folder.mkdir(parents=True, exist_ok=True)
-        os.startfile(folder)
+        open_in_os(folder)
 
     def add_deploy(self) -> None:
         path = filedialog.askopenfilename(
             parent=self,
             title="Добавить установщик",
-            filetypes=[("Installers", "*.exe;*.msi;*.bat;*.cmd;*.ps1"), ("All", "*.*")],
+            filetypes=file_type_filters("Installers", "*.exe", "*.msi", "*.bat", "*.cmd", "*.ps1"),
         )
         if not path:
             return
         src = Path(path)
         target = deploy_dir() / src.name
-        target.write_bytes(src.read_bytes())
+        try:
+            shutil.copy2(src, target)
+        except OSError as exc:
+            messagebox.showerror("Ошибка", f"Не удалось скопировать файл:\n{exc}", parent=self)
+            return
         self.master_app.log(f"Добавлен в deploy: {src.name}")
         self.refresh_pack()
 
@@ -406,7 +410,11 @@ class SettingsWindow(tk.Toplevel):
             ):
                 return
             shutil.rmtree(target)
-        shutil.copytree(src, target)
+        try:
+            shutil.copytree(src, target)
+        except OSError as exc:
+            messagebox.showerror("Ошибка", f"Не удалось скопировать папку:\n{exc}", parent=self)
+            return
         self.master_app.log(f"Добавлена папка в deploy: {src.name}")
         self.refresh_pack()
 

@@ -11,6 +11,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from ..server.hub import ClassroomServer
 from ..shared.branding import place_header_logo
 from ..shared.constants import APP_NAME, APP_VERSION, DEFAULT_PORT, DEFAULT_TOKEN, default_backup_dir
+from ..shared.osutil import file_type_filters, open_in_os
 from ..shared.scripts import get_preset, load_scripts, script_extension, set_selected
 from ..shared.scrollable import ScrollableFrame
 from ..shared.starter_pack import deploy_dir
@@ -375,7 +376,10 @@ class TeacherApp(tk.Tk):
         return local_path.name
 
     def push_wallpaper(self) -> None:
-        path = filedialog.askopenfilename(title="Выбери обои", filetypes=[("Images", "*.png;*.jpg;*.jpeg;*.bmp")])
+        path = filedialog.askopenfilename(
+            title="Выбери обои",
+            filetypes=file_type_filters("Images", "*.png", "*.jpg", "*.jpeg", "*.bmp"),
+        )
         if not path:
             return
         src = Path(path)
@@ -391,7 +395,10 @@ class TeacherApp(tk.Tk):
         self.log(f"Обои отправлены: {name}")
 
     def push_installer(self) -> None:
-        path = filedialog.askopenfilename(title="Выбери exe/msi/bat", filetypes=[("Programs", "*.exe;*.msi;*.bat")])
+        path = filedialog.askopenfilename(
+            title="Выбери exe/msi/bat",
+            filetypes=file_type_filters("Programs", "*.exe", "*.msi", "*.bat"),
+        )
         if not path:
             return
         name = self._upload_deploy_file(Path(path))
@@ -408,7 +415,7 @@ class TeacherApp(tk.Tk):
             return
         folder = self.server.store.client_root(ids[0])
         folder.mkdir(parents=True, exist_ok=True)
-        os.startfile(folder)
+        open_in_os(folder)
 
     def open_history(self) -> None:
         ids = list(self.tree.selection())
@@ -543,7 +550,7 @@ class HistoryWindow(tk.Toplevel):
 
     def open_folder(self) -> None:
         self.client_root.mkdir(parents=True, exist_ok=True)
-        os.startfile(self.client_root)
+        open_in_os(self.client_root)
 
     def _on_commit_select(self, _event=None) -> None:
         selection = self.commits.selection()

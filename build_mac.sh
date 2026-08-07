@@ -100,6 +100,7 @@ fi
   --hidden-import classroom.shared.settings \
   --hidden-import classroom.shared.scripts \
   --hidden-import classroom.shared.updates \
+  --hidden-import classroom.shared.osutil \
   --hidden-import classroom.teacher.settings_window \
   run_tutor.py
 
