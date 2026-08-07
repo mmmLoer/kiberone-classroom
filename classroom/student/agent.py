@@ -15,11 +15,13 @@ import webbrowser
 from pathlib import Path
 from typing import Callable
 
-from ..shared.constants import APP_VERSION, DEFAULT_TOKEN, POLL_SECONDS, SYNC_SECONDS, expand_path
+from ..shared.constants import APP_VERSION, DEFAULT_TOKEN, POLL_SECONDS, SYNC_SECONDS, desktop_dir, expand_path
 from ..shared.identity import get_mac_id, get_pc_number, get_watch_folder, set_pc_number
 from ..shared.settings import clamp_sync_seconds
 from ..shared.scripts import script_extension
 from ..shared.updates import file_sha256, schedule_exe_replace, version_newer
+
+import zipfile
 
 
 class StudentAgent:
@@ -34,6 +36,8 @@ class StudentAgent:
         on_message: Callable[[str], None] | None = None,
         on_pc_number_changed: Callable[[str], None] | None = None,
         on_update_available: Callable[[dict], None] | None = None,
+        on_lock_screen: Callable[[], None] | None = None,
+        on_unlock_screen: Callable[[], None] | None = None,
     ):
         self.teacher_host = teacher_host.strip()
         self.port = port
@@ -45,6 +49,8 @@ class StudentAgent:
         self.on_message = on_message or (lambda text: self.on_log(f"Сообщение: {text}"))
         self.on_pc_number_changed = on_pc_number_changed or (lambda _n: None)
         self.on_update_available = on_update_available or (lambda _info: None)
+        self.on_lock_screen = on_lock_screen or (lambda: None)
+        self.on_unlock_screen = on_unlock_screen or (lambda: None)
         self.sync_seconds = SYNC_SECONDS
         self.app_version = APP_VERSION
         self._notified_update_version: str | None = None
@@ -287,12 +293,16 @@ class StudentAgent:
         elif kind == "install_starter_pack":
             names = payload.get("names")
             self.install_starter_pack(names=names)
+        elif kind == "lock_screen":
+            self.on_lock_screen()
+        elif kind == "unlock_screen":
+            self.on_unlock_screen()
 
     def fetch_starter_pack(self) -> list[dict]:
         result = self._request("GET", "/starter-pack", headers=self._headers(), timeout=20)
         return list(result.get("items") or [])
 
-    def download_starter_item(self, name: str) -> Path:
+    def download_starter_item(self, name: str, kind: str = "installer") -> Path:
         encoded = urllib.parse.quote(name)
         data = self._request(
             "GET",
@@ -305,9 +315,34 @@ class StudentAgent:
             raise RuntimeError(data.get("error") or "download failed")
         temp_dir = Path(os.environ.get("TEMP", ".")) / "classroom_starter"
         temp_dir.mkdir(parents=True, exist_ok=True)
-        local = temp_dir / Path(name).name
+        if kind == "folder":
+            local = temp_dir / f"{Path(name).name}.zip"
+        else:
+            local = temp_dir / Path(name).name
         local.write_bytes(self._as_bytes(data))
         return local
+
+    def _deploy_folder_target(self, folder_name: str) -> Path:
+        """Папка ресурсов на рабочем столе ученика."""
+        safe = Path(folder_name).name
+        target = desktop_dir() / safe
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    def _extract_starter_folder(self, archive: Path, folder_name: str) -> Path:
+        target = self._deploy_folder_target(folder_name)
+        root = target.resolve()
+        with zipfile.ZipFile(archive, "r") as zf:
+            for info in zf.infolist():
+                if info.is_dir():
+                    continue
+                dest = (target / info.filename).resolve()
+                if root not in dest.parents and dest != root:
+                    raise RuntimeError(f"bad path in archive: {info.filename}")
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(info) as src, dest.open("wb") as out:
+                    out.write(src.read())
+        return target
 
     def install_starter_pack(self, names: list[str] | None = None) -> int:
         items = self.fetch_starter_pack()
@@ -322,9 +357,18 @@ class StudentAgent:
         for item in items:
             name = item["name"]
             title = item.get("title") or name
+            kind = item.get("kind") or "installer"
             try:
+                if kind == "folder":
+                    self.log(f"Скачиваю папку: {title}")
+                    local = self.download_starter_item(name, kind="folder")
+                    target = self._extract_starter_folder(local, name)
+                    self.log(f"Папка развёрнута: {target}")
+                    installed += 1
+                    continue
+
                 self.log(f"Скачиваю: {title}")
-                local = self.download_starter_item(name)
+                local = self.download_starter_item(name, kind="installer")
                 self.log(f"Запускаю установщик: {title}")
                 suffix = local.suffix.lower()
                 if suffix == ".msi":
@@ -339,7 +383,7 @@ class StudentAgent:
                 installed += 1
             except Exception as exc:
                 self.log(f"Не удалось установить {title}: {exc}")
-        self.log(f"Стартовый пак: запущено установщиков {installed}/{len(items)}")
+        self.log(f"Стартовый пак: обработано {installed}/{len(items)}")
         return installed
 
     def _apply_wallpaper(self, payload: dict) -> None:

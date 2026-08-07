@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -292,10 +293,11 @@ class SettingsWindow(tk.Toplevel):
         self.master_app.run_script_on_teacher(preset)
 
     def _build_pack(self, parent: ttk.Frame) -> None:
-        ttk.Label(parent, text="Стартовый пак программ", style="Title.TLabel").pack(anchor="w")
+        ttk.Label(parent, text="Стартовый пак", style="Title.TLabel").pack(anchor="w")
         ttk.Label(
             parent,
-            text="Отметь установщики из папки deploy — ученики скачают их при начальной настройке.",
+            text="Отметь установщики и папки из deploy. Установщики запускаются у ученика, "
+            "папки распаковываются на его рабочий стол.",
             style="Muted.TLabel",
             wraplength=640,
         ).pack(anchor="w", pady=(4, 8))
@@ -315,12 +317,17 @@ class SettingsWindow(tk.Toplevel):
         self.pack_list = ttk.Frame(parent)
         self.pack_list.pack(fill="both", expand=True)
 
-        files_box = ttk.LabelFrame(parent, text="Раздача файлов", padding=12)
+        files_box = ttk.LabelFrame(parent, text="Добавить в deploy", padding=12)
         files_box.pack(fill="x", pady=(12, 0))
-        ttk.Label(files_box, text="Добавь .exe / .msi / .bat в deploy", style="Muted.TLabel").pack(anchor="w")
-        ttk.Button(files_box, text="Добавить установщик в deploy…", command=self.add_deploy).pack(
-            anchor="w", pady=(8, 0)
-        )
+        ttk.Label(
+            files_box,
+            text="Можно .exe / .msi / .bat или целую папку с файлами.",
+            style="Muted.TLabel",
+        ).pack(anchor="w")
+        add_btns = ttk.Frame(files_box)
+        add_btns.pack(anchor="w", pady=(8, 0))
+        ttk.Button(add_btns, text="Добавить установщик…", command=self.add_deploy).pack(side="left")
+        ttk.Button(add_btns, text="Добавить папку…", command=self.add_deploy_folder).pack(side="left", padx=8)
         self.refresh_pack()
 
     def refresh_pack(self) -> None:
@@ -333,29 +340,35 @@ class SettingsWindow(tk.Toplevel):
         if not installers:
             ttk.Label(
                 self.pack_list,
-                text="В deploy пока нет установщиков.",
+                text="В deploy пока нет установщиков и папок.",
                 style="Muted.TLabel",
             ).pack(anchor="w")
             return
         for item in installers:
             name = item["name"]
+            kind = item.get("kind") or "installer"
             size_mb = item["size"] / (1024 * 1024)
+            kind_label = "папка" if kind == "folder" else "установщик"
             var = tk.BooleanVar(value=name in enabled)
             self._pack_vars[name] = var
             row = ttk.Frame(self.pack_list)
             row.pack(fill="x", pady=2)
-            ttk.Checkbutton(row, text=f"{name}  ({size_mb:.1f} МБ)", variable=var).pack(side="left", anchor="w")
+            ttk.Checkbutton(
+                row,
+                text=f"{name}  ({size_mb:.1f} МБ, {kind_label})",
+                variable=var,
+            ).pack(side="left", anchor="w")
 
     def save_pack(self) -> None:
         enabled = [name for name, var in self._pack_vars.items() if var.get()]
         save_starter_selection(enabled)
-        self.master_app.log(f"Стартовый пак сохранён: {len(enabled)} программ")
-        messagebox.showinfo("Сохранено", f"В стартовый пак добавлено программ: {len(enabled)}", parent=self)
+        self.master_app.log(f"Стартовый пак сохранён: {len(enabled)} пунктов")
+        messagebox.showinfo("Сохранено", f"В стартовый пак добавлено: {len(enabled)}", parent=self)
 
     def push_pack(self) -> None:
         enabled = [name for name, var in self._pack_vars.items() if var.get()]
         if not enabled:
-            messagebox.showinfo("Пак пуст", "Отметь хотя бы одну программу и сохрани выбор.", parent=self)
+            messagebox.showinfo("Пак пуст", "Отметь хотя бы один пункт и сохрани выбор.", parent=self)
             return
         save_starter_selection(enabled)
         self.master_app._send_command("install_starter_pack", {"names": enabled})
@@ -377,6 +390,24 @@ class SettingsWindow(tk.Toplevel):
         target = deploy_dir() / src.name
         target.write_bytes(src.read_bytes())
         self.master_app.log(f"Добавлен в deploy: {src.name}")
+        self.refresh_pack()
+
+    def add_deploy_folder(self) -> None:
+        path = filedialog.askdirectory(parent=self, title="Добавить папку в deploy")
+        if not path:
+            return
+        src = Path(path)
+        target = deploy_dir() / src.name
+        if target.exists():
+            if not messagebox.askyesno(
+                "Уже есть",
+                f"Папка «{src.name}» уже в deploy. Заменить?",
+                parent=self,
+            ):
+                return
+            shutil.rmtree(target)
+        shutil.copytree(src, target)
+        self.master_app.log(f"Добавлена папка в deploy: {src.name}")
         self.refresh_pack()
 
     def _build_advanced(self, parent: ttk.Frame) -> None:

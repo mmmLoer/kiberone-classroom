@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from ..shared.constants import DEFAULT_TOKEN, default_backup_dir
 from ..shared.deploy_files import resolve_deploy_any
 from ..shared.discovery import DiscoveryAnnouncer
-from ..shared.starter_pack import list_enabled_starter_pack, resolve_deploy_file
+from ..shared.starter_pack import list_enabled_starter_pack, resolve_deploy_pack_item, zip_folder_bytes
 from ..shared.versions import HISTORY_DIR, archive_if_changed, force_snapshot
 
 
@@ -492,13 +492,18 @@ class ClassroomServer:
                     query = parse_qs(urlparse(self.path).query)
                     try:
                         name = query["name"][0]
-                        path = resolve_deploy_file(name)
-                        data = path.read_bytes()
+                        path, kind = resolve_deploy_pack_item(name)
+                        if kind == "folder":
+                            data = zip_folder_bytes(path)
+                            content_type = "application/zip"
+                        else:
+                            data = path.read_bytes()
+                            mime, _ = mimetypes.guess_type(path.name)
+                            content_type = mime or "application/octet-stream"
                     except (KeyError, ValueError, FileNotFoundError) as exc:
                         self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": str(exc)})
                         return
-                    mime, _ = mimetypes.guess_type(path.name)
-                    self._bytes(HTTPStatus.OK, data, mime or "application/octet-stream")
+                    self._bytes(HTTPStatus.OK, data, content_type)
                     return
                 if route == "/deploy/file":
                     query = parse_qs(urlparse(self.path).query)

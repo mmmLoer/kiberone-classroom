@@ -41,6 +41,8 @@ class StudentApp(tk.Tk):
         self._pack_vars: dict[str, tk.BooleanVar] = {}
         self._script_map: dict[str, dict] = {}
         self._update_prompt_open = False
+        self._lock_win: tk.Toplevel | None = None
+        self._lock_lift_job: str | None = None
 
         self._build()
         self._load_fields()
@@ -246,6 +248,101 @@ class StudentApp(tk.Tk):
         except tk.TclError:
             pass
 
+    def lock_screen(self) -> None:
+        """Полноэкранная блокировка без Windows-пароля (снимается командой тьютора)."""
+        if self._lock_win and self._lock_win.winfo_exists():
+            try:
+                self._lock_win.lift()
+                self._lock_win.focus_force()
+            except tk.TclError:
+                pass
+            return
+
+        win = tk.Toplevel(self)
+        win.configure(bg="#020617")
+        win.attributes("-topmost", True)
+        try:
+            win.attributes("-fullscreen", True)
+        except tk.TclError:
+            win.state("zoomed")
+        win.overrideredirect(True)
+        win.protocol("WM_DELETE_WINDOW", lambda: None)
+
+        frame = tk.Frame(win, bg="#020617")
+        frame.pack(fill="both", expand=True)
+        tk.Label(
+            frame,
+            text="Экран заблокирован",
+            fg="#F8FAFC",
+            bg="#020617",
+            font=("Segoe UI Semibold", 36, "bold"),
+        ).pack(expand=True, pady=(0, 8))
+        tk.Label(
+            frame,
+            text="Дождись тьютора",
+            fg="#94A3B8",
+            bg="#020617",
+            font=("Segoe UI", 16),
+        ).pack()
+
+        def _block(_event=None):
+            return "break"
+
+        for seq in (
+            "<Key>",
+            "<Button>",
+            "<ButtonRelease>",
+            "<MouseWheel>",
+            "<Alt-F4>",
+            "<Control-w>",
+            "<Escape>",
+        ):
+            win.bind(seq, _block)
+
+        try:
+            win.grab_set()
+            win.focus_force()
+        except tk.TclError:
+            pass
+
+        self._lock_win = win
+        self._keep_lock_on_top()
+        self.log("Экран заблокирован тьютором")
+
+    def _keep_lock_on_top(self) -> None:
+        win = self._lock_win
+        if not win or not win.winfo_exists():
+            self._lock_lift_job = None
+            return
+        try:
+            win.lift()
+            win.attributes("-topmost", True)
+            win.focus_force()
+        except tk.TclError:
+            pass
+        self._lock_lift_job = self.after(800, self._keep_lock_on_top)
+
+    def unlock_screen(self) -> None:
+        if self._lock_lift_job:
+            try:
+                self.after_cancel(self._lock_lift_job)
+            except tk.TclError:
+                pass
+            self._lock_lift_job = None
+
+        win = self._lock_win
+        self._lock_win = None
+        if win is not None:
+            try:
+                win.grab_release()
+            except tk.TclError:
+                pass
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
+        self.log("Экран разблокирован")
+
     def _on_pc_number_changed(self, number: str) -> None:
         self.pc_var.set(number)
         self.title(f"{APP_NAME} — Ученик · ПК {number}")
@@ -300,6 +397,8 @@ class StudentApp(tk.Tk):
             on_message=lambda text: self.after(0, self.show_teacher_message, text),
             on_pc_number_changed=lambda number: self.after(0, self._on_pc_number_changed, number),
             on_update_available=lambda info: self.after(0, self.prompt_update, info),
+            on_lock_screen=lambda: self.after(0, self.lock_screen),
+            on_unlock_screen=lambda: self.after(0, self.unlock_screen),
         )
 
         if not self.agent.ping():
@@ -539,12 +638,18 @@ class StudentApp(tk.Tk):
         for item in items:
             name = item["name"]
             title = item.get("title") or name
+            kind = item.get("kind") or "installer"
             size_mb = item.get("size", 0) / (1024 * 1024)
+            kind_label = "папка" if kind == "folder" else "установщик"
             var = tk.BooleanVar(value=True)
             self._pack_vars[name] = var
             row = ttk.Frame(self.pack_frame, style="Surface.TFrame")
             row.pack(fill="x", pady=2)
-            ttk.Checkbutton(row, text=f"{title}  ({size_mb:.1f} МБ)", variable=var).pack(side="left", anchor="w")
+            ttk.Checkbutton(
+                row,
+                text=f"{title}  ({size_mb:.1f} МБ, {kind_label})",
+                variable=var,
+            ).pack(side="left", anchor="w")
             ttk.Label(row, text=name, style="Mono.TLabel").pack(side="right")
 
         self.log(f"В стартовом паке программ: {len(items)}")

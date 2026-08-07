@@ -122,35 +122,47 @@ class TeacherApp(tk.Tk):
         )
         ttk.Button(actions, text="Отправить сообщение", command=self.push_message).grid(row=3, column=2, sticky="ew", pady=4)
 
-        ttk.Label(actions, text="Скрипт запуска", style="Surface.TLabel").grid(row=4, column=0, sticky="w", pady=(10, 0))
+        ttk.Button(actions, text="Заблокировать экран", command=self.lock_screens).grid(
+            row=4, column=0, sticky="ew", pady=4
+        )
+        ttk.Button(actions, text="Разблокировать", command=self.unlock_screens, style="Accent.TButton").grid(
+            row=4, column=1, sticky="ew", pady=4, padx=6
+        )
+        ttk.Label(
+            actions,
+            text="Блокировка через приложение (без пароля Windows)",
+            style="Muted.TLabel",
+        ).grid(row=4, column=2, sticky="w", padx=(8, 0))
+
+        ttk.Label(actions, text="Скрипт запуска", style="Surface.TLabel").grid(row=5, column=0, sticky="w", pady=(10, 0))
         self.script_var = tk.StringVar()
         self.script_combo = ttk.Combobox(actions, textvariable=self.script_var, state="readonly")
-        self.script_combo.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(4, 8))
+        self.script_combo.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(4, 8))
         self.script_combo.bind("<<ComboboxSelected>>", self._on_script_selected)
         script_btns = ttk.Frame(actions, style="Surface.TFrame")
-        script_btns.grid(row=5, column=2, sticky="ew", padx=(8, 0), pady=(4, 8))
+        script_btns.grid(row=6, column=2, sticky="ew", padx=(8, 0), pady=(4, 8))
         ttk.Button(script_btns, text="На выбранных", command=self.push_script, style="Accent.TButton").pack(
             side="left", fill="x", expand=True
         )
         ttk.Button(script_btns, text="У себя", command=self.run_selected_script_local).pack(side="left", padx=(6, 0))
 
         ttk.Button(actions, text="История и откат…", command=self.open_history).grid(
-            row=6, column=0, sticky="ew", pady=(8, 0)
+            row=7, column=0, sticky="ew", pady=(8, 0)
         )
         ttk.Button(actions, text="Обновить учеников…", command=self.offer_student_update).grid(
-            row=6, column=1, sticky="ew", pady=(8, 0), padx=6
+            row=7, column=1, sticky="ew", pady=(8, 0), padx=6
         )
         ttk.Button(actions, text="Открыть папку ученика", command=self.open_student_folder).grid(
-            row=6, column=2, sticky="ew", pady=(8, 0)
+            row=7, column=2, sticky="ew", pady=(8, 0)
         )
         ttk.Button(actions, text="Изменить номер ПК…", command=self.rename_pc).grid(
-            row=7, column=0, sticky="ew", pady=(8, 0)
+            row=8, column=0, sticky="ew", pady=(8, 0)
         )
         ttk.Label(
             actions,
             text="Папка ученика = номер ПК (например ПК-3)",
             style="Muted.TLabel",
-        ).grid(row=7, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(8, 0))
+        ).grid(row=8, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(8, 0))
         actions.columnconfigure(0, weight=1)
         actions.columnconfigure(1, weight=1)
         actions.columnconfigure(2, weight=1)
@@ -296,6 +308,12 @@ class TeacherApp(tk.Tk):
         text = simpledialog.askstring("Сообщение", "Текст для учеников:")
         if text:
             self._send_command("message", {"text": text})
+
+    def lock_screens(self) -> None:
+        self._send_command("lock_screen")
+
+    def unlock_screens(self) -> None:
+        self._send_command("unlock_screen")
 
     def rename_pc(self) -> None:
         ids = list(self.tree.selection())
