@@ -1,12 +1,24 @@
 #!/usr/bin/env bash
 # Сборка тьютора для macOS. Запускать НА Mac.
+# Важно:
+# 1) --onedir (не --onefile) — иначе .app даёт серое пустое окно
+# 2) нужен Python с Tk 8.6+ (не системный 3.9 из Xcode / Tk 8.5)
+#    Пример: micromamba create -p ~/mamba-envs/kiber python=3.12 tk pillow pyinstaller
 set -euo pipefail
 cd "$(dirname "$0")"
 
-echo "KIBERone Classroom — Mac Tutor build"
-python3 -m pip install -r requirements-build.txt pillow -q
+PYTHON="${PYTHON:-python3}"
+echo "KIBERone Classroom — Mac Tutor build ($PYTHON)"
+"$PYTHON" - <<'PY'
+import sys
+import tkinter as tk
+print(f"Python {sys.version.split()[0]}, Tk {tk.TkVersion}")
+if float(tk.TkVersion) < 8.6:
+    raise SystemExit("Нужен Tk 8.6+ (системный Tk 8.5 на новых macOS даёт серое окно)")
+PY
+"$PYTHON" -m pip install -r requirements-build.txt pillow -q
 
-python3 <<'PY'
+"$PYTHON" <<'PY'
 from pathlib import Path
 from PIL import Image
 import subprocess
@@ -43,8 +55,8 @@ print("wrote", icns)
 PY
 
 echo "[1/2] Student..."
-pyinstaller --noconfirm --clean \
-  --onefile --windowed \
+"$PYTHON" -m PyInstaller --noconfirm --clean \
+  --onedir --windowed \
   --name KIBERoneStudent \
   --icon assets/app.icns \
   --paths . \
@@ -61,11 +73,8 @@ pyinstaller --noconfirm --clean \
   --hidden-import classroom.shared.updates \
   run_student.py
 
-mkdir -p updates
-if [[ -f dist/KIBERoneStudent ]]; then
-  cp -f dist/KIBERoneStudent "updates/KIBERoneStudent" || true
-  python3 publish_student_update.py || true
-fi
+# Windows Student EXE уже в updates/ — для раздачи ученикам; Mac-сборку туда не кладём
+"$PYTHON" publish_student_update.py || true
 
 echo "[2/2] Tutor..."
 EXTRA=()
@@ -73,8 +82,8 @@ if [[ -d updates ]]; then
   EXTRA+=(--add-data "updates:updates")
 fi
 
-pyinstaller --noconfirm --clean \
-  --onefile --windowed \
+"$PYTHON" -m PyInstaller --noconfirm --clean \
+  --onedir --windowed \
   --name KIBERoneTutor \
   --icon assets/app.icns \
   --paths . \
@@ -95,4 +104,4 @@ pyinstaller --noconfirm --clean \
   run_tutor.py
 
 echo
-echo "Готово: dist/KIBERoneTutor  и  dist/KIBERoneStudent"
+echo "Готово: dist/KIBERoneTutor.app  и  dist/KIBERoneStudent.app"

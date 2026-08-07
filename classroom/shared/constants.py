@@ -36,7 +36,11 @@ COMMAND_TYPES = (
 
 def app_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
+        exe = Path(sys.executable).resolve()
+        # .../App.app/Contents/MacOS/Executable → папка рядом с .app
+        if exe.parent.name == "MacOS" and exe.parent.parent.name == "Contents":
+            return exe.parent.parent.parent.parent
+        return exe.parent
     # classroom/shared/constants.py -> корень репозитория
     return Path(__file__).resolve().parent.parent.parent
 

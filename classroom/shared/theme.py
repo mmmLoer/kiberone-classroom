@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import tkinter as tk
 from tkinter import ttk
 
@@ -29,14 +30,24 @@ COLORS = {
     "header_fg": "#F8FAFC",
 }
 
-FONTS = {
-    "brand": ("Segoe UI Semibold", 18),
-    "title": ("Segoe UI Semibold", 14),
-    "body": ("Segoe UI", 10),
-    "label": ("Segoe UI", 10),
-    "mono": ("Cascadia Mono", 9),
-    "button": ("Segoe UI Semibold", 10),
-}
+if sys.platform == "darwin":
+    FONTS = {
+        "brand": ("Helvetica Neue", 18, "bold"),
+        "title": ("Helvetica Neue", 14, "bold"),
+        "body": ("Helvetica Neue", 12),
+        "label": ("Helvetica Neue", 12),
+        "mono": ("Menlo", 11),
+        "button": ("Helvetica Neue", 12, "bold"),
+    }
+else:
+    FONTS = {
+        "brand": ("Segoe UI Semibold", 18),
+        "title": ("Segoe UI Semibold", 14),
+        "body": ("Segoe UI", 10),
+        "label": ("Segoe UI", 10),
+        "mono": ("Cascadia Mono", 9),
+        "button": ("Segoe UI Semibold", 10),
+    }
 
 
 def apply_theme(root: tk.Misc) -> ttk.Style:
