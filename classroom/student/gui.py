@@ -43,6 +43,7 @@ class StudentApp(tk.Tk):
         self._update_prompt_open = False
         self._lock_win: tk.Toplevel | None = None
         self._lock_lift_job: str | None = None
+        self._connecting = False
 
         self._build()
         self._load_fields()
@@ -356,38 +357,55 @@ class StudentApp(tk.Tk):
     def _ensure_agent(self) -> bool:
         if self.agent:
             return True
-        self.connect()
+        if self._connecting:
+            messagebox.showinfo("Подождите", "Идёт подключение к тьютору…")
+            return False
+        self.connect(blocking=True)
         return self.agent is not None
 
-    def connect(self) -> None:
+    def connect(self, blocking: bool = False) -> None:
+        if self._connecting:
+            return
         self._save_fields()
+        if blocking:
+            self._connecting = True
+            try:
+                self._finish_connect(*self._connect_impl())
+            finally:
+                self._connecting = False
+            return
+
+        self._connecting = True
+        self.status_var.set("Подключение…")
+        self.status_label.configure(style="StatusWarn.TLabel")
+        self.update_idletasks()
+
+        def worker() -> None:
+            try:
+                result = self._connect_impl()
+            except Exception as exc:
+                result = (None, "", str(exc))
+            self.after(0, self._finish_connect, *result)
+            self.after(0, lambda: setattr(self, "_connecting", False))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _connect_impl(self) -> tuple[StudentAgent | None, str, str]:
+        """Сеть в фоне: (agent, host, error)."""
         host = self.host_var.get().strip()
         if not host:
-            self.log("IP не указан — ищу тьютора…")
-            self.status_var.set("Поиск тьютора…")
-            self.status_label.configure(style="StatusWarn.TLabel")
-            self.update_idletasks()
             host = discover_teacher(
                 timeout=5.0,
                 token=DEFAULT_TOKEN,
                 hint_host=get_teacher_host("") or None,
             )
             if not host:
-                messagebox.showerror(
-                    "Тьютор не найден",
-                    "Запусти KIBERoneTutor на хосте и проверь, что этот ПК в той же сети.",
-                )
-                self.status_var.set("Тьютор не найден")
-                self.status_label.configure(style="StatusWarn.TLabel")
-                return
-            self.host_var.set(host)
-            set_teacher_host(host)
-            self.log(f"Найден тьютор: {host}")
+                return None, "", "Тьютор не найден в сети"
 
         if self.agent:
             self.agent.stop()
 
-        self.agent = StudentAgent(
+        agent = StudentAgent(
             teacher_host=host,
             port=DEFAULT_PORT,
             token=DEFAULT_TOKEN,
@@ -401,14 +419,39 @@ class StudentApp(tk.Tk):
             on_unlock_screen=lambda: self.after(0, self.unlock_screen),
         )
 
-        if not self.agent.ping():
+        ok, detail = agent.ping_details()
+        if not ok:
+            return None, host, detail
+        return agent, host, ""
+
+    def _finish_connect(self, agent: StudentAgent | None, host: str, error: str) -> None:
+        if not host and error:
             messagebox.showerror(
-                "Нет связи",
-                "Не удалось связаться с тьютором.\nПроверь IP и что сервер запущен.",
+                "Тьютор не найден",
+                "Запусти KIBERoneTutor на хосте и проверь, что этот ПК в той же сети.",
             )
-            self.agent = None
+            self.status_var.set("Тьютор не найден")
+            self.status_label.configure(style="StatusWarn.TLabel")
             return
 
+        if host:
+            self.host_var.set(host)
+            set_teacher_host(host)
+            if not error:
+                self.log(f"Найден тьютор: {host}")
+
+        if error or agent is None:
+            self.log(f"Нет связи: {error or 'неизвестная ошибка'}")
+            messagebox.showerror(
+                "Нет связи",
+                f"Не удалось подключиться к тьютору.\n\n{error or 'Проверь IP и что сервер запущен.'}",
+            )
+            self.agent = None
+            self.status_var.set("Нет связи")
+            self.status_label.configure(style="StatusWarn.TLabel")
+            return
+
+        self.agent = agent
         self.agent.start()
         self.status_var.set(f"Подключено · {client_label(self.client_id)}")
         self.status_label.configure(style="StatusOk.TLabel")

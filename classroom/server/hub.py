@@ -324,7 +324,9 @@ class ClassroomServer:
             on_log=self._log,
         )
         self.discovery.start()
+        ip = self.local_ip()
         self._log(f"Сервер запущен на порту {self.port}")
+        self._log(f"IP для учеников: {ip} — если ping есть, а подключения нет, разреши доступ в брандмауэре")
 
         threading.Thread(target=self._post_start_setup, daemon=True, name="post-start").start()
 

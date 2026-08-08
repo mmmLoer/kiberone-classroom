@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Callable
 
 from ..shared.constants import APP_VERSION, DEFAULT_TOKEN, POLL_SECONDS, SYNC_SECONDS, desktop_dir, expand_path
+from ..shared.http_client import request as http_request, tcp_reachable
 from ..shared.identity import get_mac_id, get_pc_number, get_watch_folder, set_pc_number
 from ..shared.settings import clamp_sync_seconds
 from ..shared.scripts import script_extension
@@ -95,16 +96,59 @@ class StudentAgent:
         timeout: int = 15,
         raw: bool = False,
     ):
-        url = f"{self.base_url}{path}"
         if data is not None and not isinstance(data, (bytes, bytearray, memoryview)):
             raise TypeError(f"request data must be bytes, got {type(data).__name__}")
-        req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            content_type = resp.headers.get("Content-Type", "")
-            body = resp.read()
-            if not raw and "application/json" in content_type:
-                return json.loads(body.decode("utf-8"))
-            return body
+        return http_request(
+            method,
+            f"{self.base_url}{path}",
+            data=data,
+            headers=headers or {},
+            timeout=timeout,
+            raw=raw,
+        )
+
+    def ping(self, retries: int = 3, timeout: float = 4.0) -> bool:
+        ok, _ = self.ping_details(retries=retries, timeout=timeout)
+        return ok
+
+    def ping_details(self, retries: int = 3, timeout: float = 4.0) -> tuple[bool, str]:
+        host = self.teacher_host
+        ok, err = tcp_reachable(host, self.port, timeout=min(timeout, 3.0))
+        if not ok:
+            return False, err
+
+        last_error = "Неизвестная ошибка"
+        attempts = max(1, retries)
+        for attempt in range(attempts):
+            try:
+                result = self._request("GET", "/health", headers=self._headers(), timeout=int(timeout))
+                if isinstance(result, dict) and result.get("ok"):
+                    return True, ""
+                last_error = "Сервер ответил, но health-check не прошёл"
+            except urllib.error.HTTPError as exc:
+                if exc.code == 401:
+                    return False, "Неверный токен синхронизации (переустанови Student/Tutor с одного релиза)"
+                last_error = f"HTTP {exc.code}"
+            except urllib.error.URLError as exc:
+                reason = str(getattr(exc, "reason", exc) or exc)
+                low = reason.lower()
+                if "proxy" in low or "tunnel" in low:
+                    last_error = (
+                        "Системный прокси блокирует связь с тьютором. "
+                        "Обратись к админу сети или подключайся в той же подсети без прокси."
+                    )
+                elif "timed out" in low or "timeout" in low:
+                    last_error = (
+                        f"Таймаут HTTP к {host}:{self.port}. "
+                        "Ping может проходить, а порт 8765 — быть закрыт брандмауэром на ПК тьютора."
+                    )
+                else:
+                    last_error = reason
+            except (TimeoutError, OSError) as exc:
+                last_error = str(exc)
+            if attempt + 1 < attempts:
+                time.sleep(0.4)
+        return False, last_error
 
     @staticmethod
     def _as_bytes(data) -> bytes:
@@ -115,13 +159,6 @@ class StudentAgent:
         if isinstance(data, dict):
             raise TypeError("ожидались байты файла, пришёл JSON (dict)")
         raise TypeError(f"ожидались байты файла, пришло {type(data).__name__}")
-
-    def ping(self) -> bool:
-        try:
-            self._request("GET", "/health", headers=self._headers())
-            return True
-        except (urllib.error.URLError, TimeoutError, OSError):
-            return False
 
     def _loop(self) -> None:
         last_sync = 0.0
