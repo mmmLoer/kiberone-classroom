@@ -639,3 +639,42 @@ class StudentAgent:
             self.log(f"Отправлено файлов: {uploaded}")
         else:
             self.log("Изменений нет")
+
+    def diff_with_server(self) -> dict:
+        """Сравнивает локальные файлы с тем, что есть на сервере.
+
+        Возвращает dict:
+          {
+            "local_only":  [rel_path, ...],   # есть локально, нет на сервере
+            "server_only": [rel_path, ...],   # есть на сервере, нет локально
+            "conflict":    [rel_path, ...],   # есть с обеих сторон, но размер/mtime различаются
+          }
+        """
+        root = self.watch_folder.resolve()
+
+        # --- Локальные файлы ---
+        local_files: dict[str, int] = {}
+        if root.exists():
+            for file_path in root.rglob("*"):
+                if not file_path.is_file() or not self._should_sync(file_path, root):
+                    continue
+                rel = file_path.relative_to(root).as_posix()
+                local_files[rel] = file_path.stat().st_size
+
+        # --- Серверные файлы ---
+        result = self._request("GET", f"/list?client_id={self.client_id}", headers=self._headers())
+        server_list: list[dict] = (result or {}).get("files", []) if isinstance(result, dict) else []
+        server_files: dict[str, int] = {item["path"]: item.get("size", 0) for item in server_list}
+
+        local_set = set(local_files)
+        server_set = set(server_files)
+
+        return {
+            "local_only":  sorted(local_set - server_set),
+            "server_only": sorted(server_set - local_set),
+            "conflict":    sorted(
+                rel for rel in local_set & server_set
+                if local_files[rel] != server_files[rel]
+            ),
+        }
+

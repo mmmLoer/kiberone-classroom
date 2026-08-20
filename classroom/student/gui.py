@@ -520,6 +520,11 @@ class StudentApp(tk.Tk):
         self.status_var.set(f"Подключено · {client_label(self.client_id)}")
         self.status_label.configure(style="StatusOk.TLabel")
         self.log("Подключение успешно")
+
+        # Если ученик залогинился — проверяем расхождения сохранений
+        if self._student_id:
+            self.after(300, self._check_save_conflict)
+
         self.refresh_starter_pack()
         self.refresh_script_combo()
 
@@ -711,7 +716,117 @@ class StudentApp(tk.Tk):
             return
         self.agent.restore_from_teacher()
 
+    def _check_save_conflict(self) -> None:
+        """Сравнивает локальные сохранения с сервером и при расхождениях показывает диалог."""
+        if not self.agent:
+            return
+        self.log("Проверяю сохранения…")
+
+        def worker() -> None:
+            try:
+                diff = self.agent.diff_with_server()
+            except Exception as exc:
+                self.after(0, self.log, f"Не удалось проверить сохранения: {exc}")
+                return
+            has_conflict = diff["conflict"] or diff["local_only"] or diff["server_only"]
+            if has_conflict:
+                self.after(0, self._show_conflict_dialog, diff)
+            else:
+                self.after(0, self.log, "Сохранения совпадают — всё в порядке")
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _show_conflict_dialog(self, diff: dict) -> None:
+        """Показывает модальный диалог выбора при расхождении сохранений."""
+        local_only  = diff.get("local_only", [])
+        server_only = diff.get("server_only", [])
+        conflict    = diff.get("conflict", [])
+
+        # Формируем читаемое описание различий
+        lines = []
+        if conflict:
+            lines.append(f"• {len(conflict)} файл(ов) отличаются от версии тьютора")
+        if local_only:
+            lines.append(f"• {len(local_only)} файл(ов) есть только у тебя")
+        if server_only:
+            lines.append(f"• {len(server_only)} файл(ов) есть только у тьютора")
+        detail = "\n".join(lines)
+
+        win = tk.Toplevel(self)
+        win.title("Расхождение сохранений")
+        win.geometry("480x260")
+        win.minsize(400, 220)
+        win.resizable(True, True)
+        win.grab_set()
+        win.focus_force()
+        win.protocol("WM_DELETE_WINDOW", win.destroy)
+
+        from ..shared.theme import apply_theme, COLORS
+        apply_theme(win)
+
+        ttk.Label(
+            win,
+            text="⚠  Найдены различия в сохранениях",
+            style="Title.TLabel",
+        ).pack(anchor="w", padx=18, pady=(16, 4))
+
+        ttk.Label(win, text=detail, style="Muted.TLabel").pack(anchor="w", padx=18, pady=(0, 12))
+
+        ttk.Label(
+            win,
+            text="Что сделать?",
+            style="Surface.TLabel",
+        ).pack(anchor="w", padx=18)
+
+        btn_frame = ttk.Frame(win, padding=(14, 8))
+        btn_frame.pack(fill="x")
+
+        def _download() -> None:
+            win.destroy()
+            self.log("Загружаю сохранения с сервера тьютора…")
+            def w():
+                try:
+                    self.agent.restore_from_teacher()
+                    self.after(0, self.log, "Сохранения загружены с сервера")
+                except Exception as exc:
+                    self.after(0, self.log, f"Ошибка загрузки: {exc}")
+            threading.Thread(target=w, daemon=True).start()
+
+        def _upload_as_new() -> None:
+            win.destroy()
+            self.log("Отправляю локальные сохранения как новые…")
+            def w():
+                try:
+                    self.agent.sync_once()
+                    self.after(0, self.log, "Локальные сохранения отправлены тьютору")
+                except Exception as exc:
+                    self.after(0, self.log, f"Ошибка отправки: {exc}")
+            threading.Thread(target=w, daemon=True).start()
+
+        def _skip() -> None:
+            win.destroy()
+            self.log("Проверка сохранений пропущена — синхронизация будет идти как обычно")
+
+        ttk.Button(
+            btn_frame,
+            text="⬇  Скачать с тьютора (заменить мои)",
+            command=_download,
+            style="Accent.TButton",
+        ).pack(fill="x", pady=3)
+        ttk.Button(
+            btn_frame,
+            text="⬆  Сохранить мои как новые (отправить тьютору)",
+            command=_upload_as_new,
+        ).pack(fill="x", pady=3)
+        ttk.Button(
+            btn_frame,
+            text="Пропустить (не менять ничего)",
+            command=_skip,
+            style="Ghost.TButton",
+        ).pack(fill="x", pady=3)
+
     def refresh_starter_pack(self) -> None:
+
         if not self.agent:
             messagebox.showinfo("Сначала подключись", "Подключись к тьютору, чтобы увидеть стартовый пак.")
             return
