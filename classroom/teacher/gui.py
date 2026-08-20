@@ -96,8 +96,8 @@ class TeacherApp(tk.Tk):
         list_card = ttk.Frame(left, style="Surface.TFrame", padding=8)
         list_card.pack(fill="both", expand=True, pady=(8, 0))
 
-        self.tree = ttk.Treeview(list_card, columns=("pc", "ip", "status", "id"), show="headings")
-        for col, title, width in [("pc", "ПК", 55), ("ip", "IP", 110), ("status", "Статус", 80), ("id", "ID", 140)]:
+        self.tree = ttk.Treeview(list_card, columns=("pc", "ip", "status", "student"), show="headings")
+        for col, title, width in [("pc", "ПК", 55), ("ip", "IP", 110), ("status", "Статус", 80), ("student", "Ученик / ID", 140)]:
             self.tree.heading(col, text=title)
             self.tree.column(col, width=width, anchor="w", stretch=True)
         self.tree.pack(fill="both", expand=True)
@@ -293,6 +293,15 @@ class TeacherApp(tk.Tk):
             self.tree.delete(item)
         for client in self.clients:
             status = client.get("status") or "offline"
+            
+            # Определяем, что показывать в колонке student
+            student_display = client.get("client_id") or "—"
+            student_id = client.get("student_id")
+            if student_id:
+                student_record = self.server.store.db.get_student(student_id)
+                if student_record:
+                    student_display = f"{student_record['last_name']} {student_record['first_name']}"
+
             self.tree.insert(
                 "",
                 "end",
@@ -301,7 +310,7 @@ class TeacherApp(tk.Tk):
                     client.get("pc_number") or "—",
                     client.get("ip") or "—",
                     "online" if status == "online" else "offline",
-                    client.get("client_id") or "—",
+                    student_display,
                 ),
                 tags=(status,),
             )

@@ -318,7 +318,21 @@ class StudentApp(tk.Tk):
             font=("Segoe UI", 16),
         ).pack()
 
-        def _block(_event=None):
+        def _secret_unlock(_event=None):
+            self.unlock_screen()
+            self.log("Экран разблокирован тьютором (секретная комбинация клавиш)")
+            return "break"
+
+        def _block(event=None):
+            # Секретная комбинация для тьютора при обрыве сети: Ctrl+Shift+F12 или Ctrl+Shift+K / Ctrl+Shift+U
+            if event and hasattr(event, "keysym"):
+                # Ctrl (0x4) + Shift (0x1)
+                is_ctrl_shift = bool((event.state & 0x4) and (event.state & 0x1))
+                if is_ctrl_shift:
+                    if event.keysym in ("F12", "f12"):
+                        return _secret_unlock(event)
+                    if event.keysym.lower() in ("k", "u", "л", "г"):
+                        return _secret_unlock(event)
             return "break"
 
         for seq in (
@@ -331,6 +345,22 @@ class StudentApp(tk.Tk):
             "<Escape>",
         ):
             win.bind(seq, _block)
+
+        for secret_seq in (
+            "<Control-Shift-F12>",
+            "<Control-Shift-K>",
+            "<Control-Shift-k>",
+            "<Control-Shift-U>",
+            "<Control-Shift-u>",
+            "<Control-Alt-Shift-K>",
+            "<Control-Alt-Shift-k>",
+            "<Control-Alt-Shift-U>",
+            "<Control-Alt-Shift-u>",
+        ):
+            try:
+                win.bind(secret_seq, _secret_unlock)
+            except tk.TclError:
+                pass
 
         try:
             win.grab_set()
