@@ -1,4 +1,4 @@
-﻿"""GUI тьютора."""
+"""GUI тьютора."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from ..shared.starter_pack import deploy_dir
 from ..shared.theme import COLORS, append_log, apply_theme, make_log
 from ..shared.updates import get_update_info
 from ..shared.versions import list_commits, restore_commit, snapshot_all
+from .roster_tab import RosterTab
 from .settings_window import SettingsWindow
 
 
@@ -68,7 +69,22 @@ class TeacherApp(tk.Tk):
         body = ttk.Frame(self, padding=12)
         body.pack(fill="both", expand=True)
 
-        hpaned = ttk.Panedwindow(body, orient="horizontal")
+        # Главный notebook: Класс + Ученики
+        nb = ttk.Notebook(body)
+        nb.pack(fill="both", expand=True)
+
+        class_tab = ttk.Frame(nb)
+        nb.add(class_tab, text="  🖴  Класс  ")
+
+        roster_frame = RosterTab(
+            nb,
+            on_api=self._tutor_api,
+            get_backup_root=lambda: self.server.store.backup_root,
+            on_log=self.log,
+        )
+        nb.add(roster_frame, text="  👤  Ученики  ")
+
+        hpaned = ttk.Panedwindow(class_tab, orient="horizontal")
         hpaned.pack(fill="both", expand=True)
 
         left = ttk.Frame(hpaned, padding=(0, 0, 8, 0))
@@ -176,6 +192,30 @@ class TeacherApp(tk.Tk):
 
     def log(self, message: str) -> None:
         append_log(self.log_box, message)
+
+    def _tutor_api(self, method: str, path: str, body: dict | None) -> dict | None:
+        """Вспомогательный вызов локального сервера с правами тьютора."""
+        import json as _json
+        from ..shared.http_client import request as _req
+        try:
+            data = _json.dumps(body).encode("utf-8") if body is not None else None
+            headers = {
+                "X-Sync-Token": DEFAULT_TOKEN,
+                "X-Tutor": "1",
+            }
+            if data is not None:
+                headers["Content-Type"] = "application/json"
+            result = _req(
+                method,
+                f"http://127.0.0.1:{DEFAULT_PORT}{path}",
+                data=data,
+                headers=headers,
+                timeout=10,
+            )
+            return result if isinstance(result, dict) else None
+        except Exception as exc:
+            self.after(0, self.log, f"API ошибка: {exc}")
+            return None
 
     def open_settings(self) -> None:
         if self._settings_win and self._settings_win.winfo_exists():

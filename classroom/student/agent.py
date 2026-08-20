@@ -1,4 +1,4 @@
-﻿"""Клиент ученика: синхронизация, heartbeat, выполнение команд."""
+"""Клиент ученика: синхронизация, heartbeat, выполнение команд."""
 
 from __future__ import annotations
 
@@ -39,6 +39,8 @@ class StudentAgent:
         on_update_available: Callable[[dict], None] | None = None,
         on_lock_screen: Callable[[], None] | None = None,
         on_unlock_screen: Callable[[], None] | None = None,
+        student_id: str = "",
+        session_id: str = "",
     ):
         self.teacher_host = teacher_host.strip()
         self.port = port
@@ -52,6 +54,8 @@ class StudentAgent:
         self.on_update_available = on_update_available or (lambda _info: None)
         self.on_lock_screen = on_lock_screen or (lambda: None)
         self.on_unlock_screen = on_unlock_screen or (lambda: None)
+        self.student_id = student_id
+        self.session_id = session_id
         self.sync_seconds = SYNC_SECONDS
         self.app_version = APP_VERSION
         self._notified_update_version: str | None = None
@@ -190,6 +194,8 @@ class StudentAgent:
                 "hostname": socket.gethostname(),
                 "watch_folder": str(self.watch_folder),
                 "app_version": self.app_version,
+                "student_id": self.student_id,
+                "session_id": self.session_id,
             }
         ).encode("utf-8")
         result = self._request(

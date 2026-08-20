@@ -1,4 +1,4 @@
-﻿"""GUI ученика."""
+"""GUI ученика."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ from ..shared.scripts import get_preset, load_scripts
 from ..shared.scrollable import ScrollableFrame
 from ..shared.theme import append_log, apply_theme, make_log
 from .agent import StudentAgent
+from .login_screen import StudentLoginScreen
 
 
 class StudentApp(tk.Tk):
@@ -44,6 +45,10 @@ class StudentApp(tk.Tk):
         self._lock_win: tk.Toplevel | None = None
         self._lock_lift_job: str | None = None
         self._connecting = False
+        # Ученическая идентичность — заполняется после login_screen
+        self._student_id: str = ""
+        self._session_id: str = ""
+        self._student_name: str = ""
 
         self._build()
         self._load_fields()
@@ -69,10 +74,29 @@ class StudentApp(tk.Tk):
             self.log(f"Найден тьютор: {host}")
             self.status_var.set(f"Найден: {host}")
             self.status_label.configure(style="StatusOk.TLabel")
+            # Показываем экран входа
+            self.after(100, lambda: self._show_login_screen(host))
         else:
             self.log("Тьютор не найден. Запусти KIBERoneTutor на хосте.")
             self.status_var.set("Тьютор не найден")
             self.status_label.configure(style="StatusWarn.TLabel")
+
+    def _show_login_screen(self, host: str) -> None:
+        StudentLoginScreen(
+            self,
+            teacher_host=host,
+            on_login=self._on_student_login,
+            on_skip=lambda: self.log("Отработка без учётной записи."),
+        )
+
+    def _on_student_login(self, student_id: str, session_id: str, student_name: str) -> None:
+        self._student_id = student_id
+        self._session_id = session_id
+        self._student_name = student_name
+        self._subtitle_var.set(f"{student_name} · {self.host_var.get()}")
+        self.log(f"Вход выполнен: {student_name}")
+        # Автоматически подключаемся
+        self.after(300, self.connect)
 
     def _build(self) -> None:
         header = ttk.Frame(self, style="Header.TFrame", padding=(18, 12))
@@ -81,9 +105,10 @@ class StudentApp(tk.Tk):
         text_box = ttk.Frame(header, style="Header.TFrame")
         text_box.pack(side="left", fill="x", expand=True)
         ttk.Label(text_box, text="KIBERone Classroom", style="Brand.TLabel").pack(anchor="w")
+        self._subtitle_var = tk.StringVar(value=f"Подключение к тьютору · v{APP_VERSION}")
         ttk.Label(
             text_box,
-            text=f"Подключение к тьютору · v{APP_VERSION}",
+            textvariable=self._subtitle_var,
             style="Header.TLabel",
         ).pack(anchor="w", pady=(2, 0))
 
@@ -417,6 +442,8 @@ class StudentApp(tk.Tk):
             on_update_available=lambda info: self.after(0, self.prompt_update, info),
             on_lock_screen=lambda: self.after(0, self.lock_screen),
             on_unlock_screen=lambda: self.after(0, self.unlock_screen),
+            student_id=self._student_id,
+            session_id=self._session_id,
         )
 
         ok, detail = agent.ping_details()

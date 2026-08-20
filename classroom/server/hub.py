@@ -16,6 +16,7 @@ from typing import Callable
 from urllib.parse import parse_qs, unquote, urlparse
 
 from ..shared.constants import DEFAULT_TOKEN, default_backup_dir
+from ..shared.database import ClassroomDB
 from ..shared.deploy_files import resolve_deploy_any
 from ..shared.discovery import DiscoveryAnnouncer
 from ..shared.starter_pack import list_enabled_starter_pack, resolve_deploy_pack_item, zip_folder_bytes
@@ -25,6 +26,12 @@ from ..shared.versions import HISTORY_DIR, archive_if_changed, force_snapshot
 def safe_client_id(raw: str) -> str:
     cleaned = "".join(ch for ch in raw.strip() if ch.isalnum() or ch in "-_")
     return cleaned or "unknown"
+
+
+def _safe_folder_name(raw: str) -> str:
+    """Безопасное имя папки из произвольной строки (ФИО, название группы)."""
+    cleaned = "".join(ch if (ch.isalnum() or ch in "-_ ") else "_" for ch in raw.strip())
+    return cleaned.strip("_").replace(" ", "_") or "unknown"
 
 
 def safe_pc_folder(pc_number: str) -> str:
@@ -51,6 +58,8 @@ class ClientInfo:
     last_seen: float = 0.0
     status: str = "offline"
     watch_folder: str = ""
+    student_id: str = ""
+    session_id: str = ""
     extra: dict = field(default_factory=dict)
 
 
@@ -72,6 +81,7 @@ class ClassroomStore:
         self.broadcast_pending: list[Command] = []
         self.lock = threading.RLock()
         self.backup_root.mkdir(parents=True, exist_ok=True)
+        self.db = ClassroomDB(backup_root)
         from ..shared.settings import load_teacher_settings
 
         self.settings = load_teacher_settings()
@@ -90,11 +100,26 @@ class ClassroomStore:
             return dict(self.settings)
 
     def client_root(self, client_id: str) -> Path:
-        """Папка ученика на диске — по номеру ПК (не по MAC)."""
+        """Папка ученика на диске.
+
+        Приоритет: группа/Фамилия_Имя (если ученик залогинился) → ПК-N (старая схема).
+        """
         client_id = safe_client_id(client_id)
         with self.lock:
             info = self.clients.get(client_id)
+            student_id = (info.student_id if info else "") or ""
             pc = (info.pc_number if info else "") or ""
+
+        if student_id:
+            student = self.db.get_student(student_id)
+            if student:
+                group = self.db.get_group(student["group_id"])
+                group_name = _safe_folder_name(group["name"] if group else "группа")
+                student_name = _safe_folder_name(
+                    f"{student['last_name']}_{student['first_name']}"
+                )
+                return (self.backup_root / group_name / student_name).resolve()
+
         folder = safe_pc_folder(pc)
         if not folder:
             folder = f"_без_номера_{client_id}"
@@ -112,6 +137,8 @@ class ClassroomStore:
             info.ip = ip
             info.last_seen = time.time()
             info.status = "online"
+            info.student_id = str(payload.get("student_id") or "").strip()
+            info.session_id = str(payload.get("session_id") or "").strip()
             info.extra = payload.get("extra", {})
             self.clients[client_id] = info
         if new_pc and new_pc != old_pc:
@@ -519,6 +546,30 @@ class ClassroomServer:
                     mime, _ = mimetypes.guess_type(path.name)
                     self._bytes(HTTPStatus.OK, data, mime or "application/octet-stream")
                     return
+                # ── Roster: группы / ученики ──
+                if route == "/roster/groups":
+                    self._json(HTTPStatus.OK, {"ok": True, "groups": store.db.list_groups()})
+                    return
+                if route == "/roster/students":
+                    query = parse_qs(urlparse(self.path).query)
+                    group_id = query.get("group_id", [None])[0]
+                    self._json(HTTPStatus.OK, {"ok": True, "students": store.db.list_students(group_id)})
+                    return
+                if route.startswith("/roster/student/") and route.endswith("/history"):
+                    sid = route[len("/roster/student/"):-len("/history")]
+                    student = store.db.get_student(sid)
+                    if not student:
+                        self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
+                        return
+                    sessions = store.db.list_sessions(sid)
+                    grades = store.db.get_grades(sid)
+                    self._json(HTTPStatus.OK, {
+                        "ok": True,
+                        "student": student,
+                        "sessions": sessions,
+                        "grades": grades,
+                    })
+                    return
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
 
             def do_POST(self):
@@ -579,6 +630,90 @@ class ClassroomServer:
                     count = store.enqueue(client_ids, kind, cmd_payload)
                     log(f"Команда {kind} -> {len(client_ids)} ПК")
                     self._json(HTTPStatus.OK, {"ok": True, "queued": count})
+                    return
+                # ── Roster POST ──
+                if route == "/roster/checkin":
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    student_id = str(payload.get("student_id") or "").strip()
+                    if not student_id or not store.db.get_student(student_id):
+                        self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "unknown student_id"})
+                        return
+                    topic = str(payload.get("topic") or "").strip()
+                    pc_number = str(payload.get("pc_number") or "").strip()
+                    client_id = self._client_id()
+                    session = store.db.create_session(student_id, topic, pc_number, client_id)
+                    log(f"Чек-ин: {student_id} / {topic}")
+                    self._json(HTTPStatus.OK, {"ok": True, "session": session})
+                    return
+                # ── Tutor-only roster actions ──
+                is_tutor = self.headers.get("X-Tutor", "") == "1"
+                if not is_tutor:
+                    self._json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "tutor only"})
+                    return
+                if route == "/roster/groups":
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    name = str(payload.get("name") or "").strip()
+                    module = str(payload.get("module") or "").strip()
+                    if not name:
+                        self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "name required"})
+                        return
+                    group = store.db.create_group(name, module)
+                    self._json(HTTPStatus.OK, {"ok": True, "group": group})
+                    return
+                if route.startswith("/roster/groups/"):
+                    gid = route[len("/roster/groups/"):]
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    if payload.get("_delete"):
+                        store.db.delete_group(gid)
+                        self._json(HTTPStatus.OK, {"ok": True})
+                    else:
+                        group = store.db.update_group(
+                            gid,
+                            name=payload.get("name"),
+                            module=payload.get("module"),
+                        )
+                        self._json(HTTPStatus.OK, {"ok": True, "group": group})
+                    return
+                if route == "/roster/students":
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    last_name  = str(payload.get("last_name") or "").strip()
+                    first_name = str(payload.get("first_name") or "").strip()
+                    group_id   = str(payload.get("group_id") or "").strip()
+                    age        = payload.get("age")
+                    if not last_name or not first_name or not group_id:
+                        self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "last_name, first_name, group_id required"})
+                        return
+                    student = store.db.create_student(last_name, first_name, group_id, age)
+                    self._json(HTTPStatus.OK, {"ok": True, "student": student})
+                    return
+                if route.startswith("/roster/students/"):
+                    sid = route[len("/roster/students/"):]
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    if payload.get("_delete"):
+                        store.db.delete_student(sid)
+                        self._json(HTTPStatus.OK, {"ok": True})
+                    else:
+                        student = store.db.update_student(
+                            sid,
+                            last_name=payload.get("last_name"),
+                            first_name=payload.get("first_name"),
+                            age=payload.get("age", ...),
+                            group_id=payload.get("group_id"),
+                            comment=payload.get("comment"),
+                        )
+                        self._json(HTTPStatus.OK, {"ok": True, "student": student})
+                    return
+                if route == "/roster/grade":
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    student_id = str(payload.get("student_id") or "").strip()
+                    session_id = str(payload.get("session_id") or "").strip() or None
+                    value = int(payload.get("value") or 0)
+                    note  = str(payload.get("note") or "").strip()
+                    if not student_id or value not in range(1, 6):
+                        self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "student_id and value 1-5 required"})
+                        return
+                    grade = store.db.set_grade(student_id, session_id, value, note)
+                    self._json(HTTPStatus.OK, {"ok": True, "grade": grade})
                     return
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
 

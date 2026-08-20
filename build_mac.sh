@@ -63,6 +63,8 @@ echo "[1/2] Student..."
   --add-data "assets:assets" \
   --hidden-import classroom.student.gui \
   --hidden-import classroom.student.agent \
+  --hidden-import classroom.student.login_screen \
+  --hidden-import classroom.shared.database \
   --hidden-import classroom.shared.discovery \
   --hidden-import classroom.shared.identity \
   --hidden-import classroom.shared.theme \
@@ -90,7 +92,9 @@ fi
   --add-data "assets:assets" \
   "${EXTRA[@]}" \
   --hidden-import classroom.teacher.gui \
+  --hidden-import classroom.teacher.roster_tab \
   --hidden-import classroom.server.hub \
+  --hidden-import classroom.shared.database \
   --hidden-import classroom.shared.discovery \
   --hidden-import classroom.shared.versions \
   --hidden-import classroom.shared.theme \
