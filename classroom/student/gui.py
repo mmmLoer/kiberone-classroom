@@ -95,6 +95,13 @@ class StudentApp(tk.Tk):
         self._student_name = student_name
         self._subtitle_var.set(f"{student_name} · {self.host_var.get()}")
         self.log(f"Вход выполнен: {student_name}")
+        
+        # Меняем папку на рабочем столе на имя ученика
+        new_folder = str(Path.home() / "Desktop" / student_name)
+        self.folder_var.set(new_folder)
+        set_watch_folder(new_folder)
+        self.log(f"Папка синхронизации: {new_folder}")
+
         # Автоматически подключаемся
         self.after(300, self.connect)
 
