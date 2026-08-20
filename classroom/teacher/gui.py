@@ -92,7 +92,19 @@ class TeacherApp(tk.Tk):
         hpaned.add(left, weight=2)
         hpaned.add(right_wrap, weight=3)
 
-        ttk.Label(left, text="Компьютеры", style="Title.TLabel").pack(anchor="w")
+        # Заголовок + Выбор группы
+        hdr_frame = ttk.Frame(left)
+        hdr_frame.pack(fill="x", anchor="w")
+        ttk.Label(hdr_frame, text="Компьютеры", style="Title.TLabel").pack(side="left")
+
+        self._class_groups: list[dict] = []
+        self._class_group_var = tk.StringVar()
+        self._class_group_combo = ttk.Combobox(
+            hdr_frame, textvariable=self._class_group_var, state="readonly", width=18
+        )
+        self._class_group_combo.pack(side="right", padx=(10, 0))
+        self._class_group_combo.bind("<<ComboboxSelected>>", lambda e: self.refresh_clients())
+
         list_card = ttk.Frame(left, style="Surface.TFrame", padding=8)
         list_card.pack(fill="both", expand=True, pady=(8, 0))
 
@@ -287,25 +299,48 @@ class TeacherApp(tk.Tk):
             subprocess.Popen(["cmd", "/c", str(path)], shell=False)
 
     def refresh_clients(self) -> None:
+        # Обновляем список групп
+        self._class_groups = self.server.store.db.list_groups()
+        group_names = ["Все группы"] + [g["name"] for g in self._class_groups]
+        current_sel = self._class_group_var.get()
+        self._class_group_combo.config(values=group_names)
+        if current_sel not in group_names:
+            self._class_group_var.set("Все группы")
+            current_sel = "Все группы"
+
+        active_group = next((g for g in self._class_groups if g["name"] == current_sel), None)
+        group_students = []
+        if active_group:
+            group_students = self.server.store.db.list_students(active_group["id"])
+
         self.clients = self.server.store.list_clients()
         selected = set(self.tree.selection())
         for item in self.tree.get_children():
             self.tree.delete(item)
+        
+        seen_student_ids = set()
+
+        # 1. Показываем все подключенные клиенты
         for client in self.clients:
             status = client.get("status") or "offline"
-            
-            # Определяем, что показывать в колонке student
             student_display = client.get("client_id") or "—"
             student_id = client.get("student_id")
+            
+            # Если выбрана группа, фильтруем: 
+            # показываем клиента, если он принадлежит этой группе,
+            # либо если он вообще без ученика (чтобы тьютор видел неопознанные ПК)
+            if active_group and student_id:
+                if not any(s["id"] == student_id for s in group_students):
+                    continue
+
             if student_id:
                 student_record = self.server.store.db.get_student(student_id)
                 if student_record:
                     student_display = f"{student_record['last_name']} {student_record['first_name']}"
+                    seen_student_ids.add(student_id)
 
             self.tree.insert(
-                "",
-                "end",
-                iid=client["client_id"],
+                "", "end", iid=client["client_id"],
                 values=(
                     client.get("pc_number") or "—",
                     client.get("ip") or "—",
@@ -314,15 +349,30 @@ class TeacherApp(tk.Tk):
                 ),
                 tags=(status,),
             )
+
+        # 2. Показываем оффлайн учеников выбранной группы
+        if active_group:
+            for s in group_students:
+                if s["id"] not in seen_student_ids:
+                    student_display = f"{s['last_name']} {s['first_name']}"
+                    iid = f"offline_student_{s['id']}"
+                    self.tree.insert(
+                        "", "end", iid=iid,
+                        values=("—", "—", "offline", student_display),
+                        tags=("offline",)
+                    )
+
         for iid in selected:
             if self.tree.exists(iid):
                 self.tree.selection_add(iid)
         self.after(3000, self.refresh_clients)
 
+
     def selected_client_ids(self) -> list[str]:
         ids = list(self.tree.selection())
-        if ids:
-            return ids
+        valid_ids = [iid for iid in ids if not iid.startswith("offline_student_")]
+        if valid_ids:
+            return valid_ids
         return [c["client_id"] for c in self.clients if c.get("status") == "online"]
 
     def _send_command(self, kind: str, payload: dict | None = None) -> None:
@@ -337,7 +387,8 @@ class TeacherApp(tk.Tk):
         self.tree.selection_set([])
         for client in self.clients:
             if client.get("status") == "online":
-                self.tree.selection_add(client["client_id"])
+                if self.tree.exists(client["client_id"]):
+                    self.tree.selection_add(client["client_id"])
 
     def open_url(self) -> None:
         url = self.url_var.get().strip()
