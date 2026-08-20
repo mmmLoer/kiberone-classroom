@@ -189,5 +189,9 @@ def make_log(parent: tk.Misc, height: int = 12) -> tk.Text:
 def append_log(box: tk.Text, message: str) -> None:
     box.configure(state="normal")
     box.insert("end", message + "\n")
+    # Обрезаем старые строки — защита от утечки памяти при долгой работе
+    line_count = int(box.index("end-1c").split(".")[0])
+    if line_count > 500:
+        box.delete("1.0", f"{line_count - 500}.0")
     box.see("end")
     box.configure(state="disabled")

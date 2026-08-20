@@ -6,11 +6,11 @@
 	<dict>
 		<key>Resources/_tcl_data/auto.tcl</key>
 		<data>
-		Vte9kXQHWaVNCuck/YBqEktnypg=
+		PjkX5wd0gYmnreFKHZUFqwwqrhQ=
 		</data>
 		<key>Resources/_tcl_data/clock.tcl</key>
 		<data>
-		DgyNC8fUcr8DImgF8hH9eswKRZM=
+		q95V4+ttJZRv4Hzkrm2WYqfnXQE=
 		</data>
 		<key>Resources/_tcl_data/encoding/ascii.enc</key>
 		<data>
@@ -334,7 +334,7 @@
 		</data>
 		<key>Resources/_tcl_data/history.tcl</key>
 		<data>
-		Lia3l32QDqp9SQjVETgD3280/Fk=
+		f06SrN7NhRXGHAUymopJLjbKE54=
 		</data>
 		<key>Resources/_tcl_data/http1.0/http.tcl</key>
 		<data>
@@ -346,7 +346,7 @@
 		</data>
 		<key>Resources/_tcl_data/init.tcl</key>
 		<data>
-		dcKCzX9WSnEgcwyFPULLxJ0f9Qw=
+		oQefICjth07c9DR/wCR3l7pHOJU=
 		</data>
 		<key>Resources/_tcl_data/msgs/af.msg</key>
 		<data>
@@ -858,15 +858,15 @@
 		</data>
 		<key>Resources/_tcl_data/opt0.4/optparse.tcl</key>
 		<data>
-		aqYWCRrM8STOdy3cRNKcQae3Dkw=
+		8H+g2HJ3MJuHCq6xxdK3iBtALlQ=
 		</data>
 		<key>Resources/_tcl_data/opt0.4/pkgIndex.tcl</key>
 		<data>
-		c5kyhfdvzql2gzZyK/AEpFStXGk=
+		AxQPneIK2LCHnn/IcEc+htq8V+w=
 		</data>
 		<key>Resources/_tcl_data/package.tcl</key>
 		<data>
-		eWjLk4MkhYPTBZ48aealwstvUgc=
+		vJDySk9RRrXxu1qivqTuvC0EwKc=
 		</data>
 		<key>Resources/_tcl_data/parray.tcl</key>
 		<data>
@@ -874,7 +874,7 @@
 		</data>
 		<key>Resources/_tcl_data/safe.tcl</key>
 		<data>
-		MZeIeQKYKUvCDqrYnPDJvWUiabg=
+		W2OxumZBUUfHmOwwGAeUeI0iZ+4=
 		</data>
 		<key>Resources/_tcl_data/tclAppInit.c</key>
 		<data>
@@ -882,15 +882,15 @@
 		</data>
 		<key>Resources/_tcl_data/tclIndex</key>
 		<data>
-		SfS5vlq3fmzKuAkfMV1CTXrBg/M=
+		vyxjBh2FKaSQnUrAW9O9PB1l4qc=
 		</data>
 		<key>Resources/_tcl_data/tm.tcl</key>
 		<data>
-		AmWaJUhunU3qT/p4oe90kg2Lork=
+		w5Piy0thL6AFlXwENtMHdvDFf6A=
 		</data>
 		<key>Resources/_tcl_data/word.tcl</key>
 		<data>
-		6BIqnbQBB5p29Y+mdg0vBCSSxWU=
+		EHWAJskYyJheR9QvBglh+o7+vdk=
 		</data>
 		<key>Resources/_tk_data/bgerror.tcl</key>
 		<data>
@@ -902,11 +902,11 @@
 		</data>
 		<key>Resources/_tk_data/choosedir.tcl</key>
 		<data>
-		HtoHhwB4/Ew2kLVLtTMKcix1qgU=
+		b4+6WX8IUIPK3Y5xk9F2/qCinOc=
 		</data>
 		<key>Resources/_tk_data/clrpick.tcl</key>
 		<data>
-		VgK7p36fHGmYWD6GpQhvXbUTW1Q=
+		TAQKzEzSEXP49phjV0NARrvQzDc=
 		</data>
 		<key>Resources/_tk_data/comdlg.tcl</key>
 		<data>
@@ -914,7 +914,7 @@
 		</data>
 		<key>Resources/_tk_data/console.tcl</key>
 		<data>
-		qA7o3jDZ0o6ZSlL5vocx8ulFbuY=
+		KeLufRHi5BZ6l7kPRP1PGnVQdkI=
 		</data>
 		<key>Resources/_tk_data/dialog.tcl</key>
 		<data>
@@ -922,7 +922,7 @@
 		</data>
 		<key>Resources/_tk_data/entry.tcl</key>
 		<data>
-		BQKcC07WQ3Y6OPnQmRZocB7ODpE=
+		UboQkLAvC5oVA8URpH0RFzlOE8E=
 		</data>
 		<key>Resources/_tk_data/focus.tcl</key>
 		<data>
@@ -930,11 +930,11 @@
 		</data>
 		<key>Resources/_tk_data/fontchooser.tcl</key>
 		<data>
-		cJkS3iVYcLWTTG2raORRg+BY6i0=
+		e6wFZyls0Z4ft+nRs67in1XccN4=
 		</data>
 		<key>Resources/_tk_data/iconlist.tcl</key>
 		<data>
-		XgbfSep3p5FjzAZAz62pAmwyLLY=
+		o675ntOsggS/0Q32SWt/Lp3Lsuk=
 		</data>
 		<key>Resources/_tk_data/icons.tcl</key>
 		<data>
@@ -1002,7 +1002,7 @@
 		</data>
 		<key>Resources/_tk_data/menu.tcl</key>
 		<data>
-		IfRhWXOUco2MzHsCiYa+Y1kBDMY=
+		Ltd65Ojk6Jd8RhBBQDplHK9/c3A=
 		</data>
 		<key>Resources/_tk_data/mkpsenc.tcl</key>
 		<data>
@@ -1082,7 +1082,7 @@
 		</data>
 		<key>Resources/_tk_data/msgs/zh_cn.msg</key>
 		<data>
-		t94JIiBnm5XYjVtPOcek5t2uVbE=
+		CRYOLe02340zZ4hksZ+HFZjuKSA=
 		</data>
 		<key>Resources/_tk_data/obsolete.tcl</key>
 		<data>
@@ -1102,7 +1102,7 @@
 		</data>
 		<key>Resources/_tk_data/pkgIndex.tcl</key>
 		<data>
-		th+AUA0lly8s4oLKsF44cqVB7yQ=
+		ZSiHGCo9AoELSub39lieo1AapaQ=
 		</data>
 		<key>Resources/_tk_data/safetk.tcl</key>
 		<data>
@@ -1126,15 +1126,15 @@
 		</data>
 		<key>Resources/_tk_data/tearoff.tcl</key>
 		<data>
-		fbDzfHsLpT6walV7xDEi2k6dDyM=
+		qKEoPyejUVzAzyijvYfWV79Vnh8=
 		</data>
 		<key>Resources/_tk_data/text.tcl</key>
 		<data>
-		8iteE7xzpCivk7gXLHSsqf+DABA=
+		TLr1vX72+ATQqphoF0bhQ/ytO2I=
 		</data>
 		<key>Resources/_tk_data/tk.tcl</key>
 		<data>
-		4RRgd0JKTxFa7k6dEx2F+Gw/AjM=
+		kLiJyKO4OvRPd6VzKDhChPLESOU=
 		</data>
 		<key>Resources/_tk_data/tkAppInit.c</key>
 		<data>
@@ -1142,7 +1142,7 @@
 		</data>
 		<key>Resources/_tk_data/tkfbox.tcl</key>
 		<data>
-		GX9++snLtKJrvaxp78S6z8osn8s=
+		LQrPWwmF+yYZY9yq4DNHdjQ44xE=
 		</data>
 		<key>Resources/_tk_data/ttk/altTheme.tcl</key>
 		<data>
@@ -1178,19 +1178,19 @@
 		</data>
 		<key>Resources/_tk_data/ttk/entry.tcl</key>
 		<data>
-		k1ghtZ2n9SSXNAgt8FPwmeRnYiM=
+		mV33YkSBrPKdFCtlrr5NUjIuYl0=
 		</data>
 		<key>Resources/_tk_data/ttk/fonts.tcl</key>
 		<data>
-		cgBJKGxDMk+GhBQlkJ4qLiJaqoo=
+		Snv5G+hfEN/He3uOA7N+NO5R7q8=
 		</data>
 		<key>Resources/_tk_data/ttk/menubutton.tcl</key>
 		<data>
-		s5hrRjAaF/aYSql7PuEi94FCzFA=
+		lcLabSCzCUXS2BZhbPyTH0iOn/c=
 		</data>
 		<key>Resources/_tk_data/ttk/notebook.tcl</key>
 		<data>
-		WPz5dOApwdY3DAXkcJ6tad0BH0A=
+		rwHBo5Y9koMB1rwslNDYfd3uA0Q=
 		</data>
 		<key>Resources/_tk_data/ttk/panedwindow.tcl</key>
 		<data>
@@ -1260,6 +1260,46 @@
 		<data>
 		UsUQJrKSJDz9id90cb5CsNWdtj8=
 		</data>
+		<key>Resources/assets/app.iconset/icon_128x128.png</key>
+		<data>
+		C8X+w7htjS0Baqt0TGft231jrmM=
+		</data>
+		<key>Resources/assets/app.iconset/icon_128x128@2x.png</key>
+		<data>
+		ZIE0yTQGQ+7DiGZusfqWiuyaR68=
+		</data>
+		<key>Resources/assets/app.iconset/icon_16x16.png</key>
+		<data>
+		7EOZmxoFO+2inaQ+f+t5f0IA82Y=
+		</data>
+		<key>Resources/assets/app.iconset/icon_16x16@2x.png</key>
+		<data>
+		JXw12Q7gpHuxrUP/n9Y7axkGPxY=
+		</data>
+		<key>Resources/assets/app.iconset/icon_256x256.png</key>
+		<data>
+		ZIE0yTQGQ+7DiGZusfqWiuyaR68=
+		</data>
+		<key>Resources/assets/app.iconset/icon_256x256@2x.png</key>
+		<data>
+		+Wlr91Lb10YM+9fcMY2GheMy3P8=
+		</data>
+		<key>Resources/assets/app.iconset/icon_32x32.png</key>
+		<data>
+		JXw12Q7gpHuxrUP/n9Y7axkGPxY=
+		</data>
+		<key>Resources/assets/app.iconset/icon_32x32@2x.png</key>
+		<data>
+		sCWMhyIe68hVmNXPtkxGBdIXwTc=
+		</data>
+		<key>Resources/assets/app.iconset/icon_512x512.png</key>
+		<data>
+		+Wlr91Lb10YM+9fcMY2GheMy3P8=
+		</data>
+		<key>Resources/assets/app.iconset/icon_512x512@2x.png</key>
+		<data>
+		iLMT7lNg3wsa3mtAb4g/I7HXvRI=
+		</data>
 		<key>Resources/assets/logo.jpg</key>
 		<data>
 		7ibhKlR7yllQtiYricIOVcA357A=
@@ -1270,31 +1310,31 @@
 		</data>
 		<key>Resources/base_library.zip</key>
 		<data>
-		mhMXlFNe7UW8oUcw9q1tGkzoKA0=
+		sKnWx53h1NO9JMGOUa8E5YG28Dc=
 		</data>
 		<key>Resources/tcl8/8.4/platform-1.0.19.tm</key>
 		<data>
-		CBjsZ8nlqdqPWQYfy7cp9jg1euk=
+		YdK+5LeSYCeDUJi5lbT1zNrO1NU=
 		</data>
 		<key>Resources/tcl8/8.4/platform/shell-1.1.4.tm</key>
 		<data>
-		hXY/N4poumoe7piHzc80wU061b8=
+		T2Zyotbpbm+05Mbi6TMz8oeQGCc=
 		</data>
 		<key>Resources/tcl8/8.5/msgcat-1.6.1.tm</key>
 		<data>
-		o0IhPhj3j/YFAzq9bHsQfJQ67HI=
+		VfzjObpSzVD3gAKpksjOmr7LN14=
 		</data>
-		<key>Resources/tcl8/8.5/tcltest-2.5.5.tm</key>
+		<key>Resources/tcl8/8.5/tcltest-2.5.7.tm</key>
 		<data>
-		O3WRpteZ1EfZjDrSz2hXUFzgN50=
+		sCcCDVqykh4hx54Qw+6wO7R1UP8=
 		</data>
 		<key>Resources/tcl8/8.6/http-2.9.8.tm</key>
 		<data>
-		dFq7ilMxApHwEoyWUBqvw0bIuSA=
+		+WWXcftPnBHnueYmxi8ROpKfxZc=
 		</data>
-		<key>Resources/tcl8/8.6/tdbc/sqlite3-1.1.5.tm</key>
+		<key>Resources/tcl8/8.6/tdbc/sqlite3-1.1.7.tm</key>
 		<data>
-		3u3rzq4MdpDKnzABvT6LF6CnnUM=
+		SL65b46EfuzbSnA5kE88MOiLYtk=
 		</data>
 		<key>Resources/updates/.gitkeep</key>
 		<data>
@@ -1302,15 +1342,29 @@
 		</data>
 		<key>Resources/updates/KIBERoneStudent.exe</key>
 		<data>
-		9u9Cc0GGLloqSm8gTdaAqkjQK34=
+		iUHRAIbz/9cXJylGnDXfWLd1Jnk=
 		</data>
 		<key>Resources/updates/student_manifest.json</key>
 		<data>
-		V+TeD4qfxkJFKC+kkLU3RJ0MXrg=
+		zI7clpYuAYNJRC5IKiLwImclHlY=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Frameworks/Python</key>
+		<dict>
+			<key>symlink</key>
+			<string>Python.framework/Versions/3.12/Python</string>
+		</dict>
+		<key>Frameworks/Python.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			NmwgRAXWAlFcKxfoYKgBp69nopI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"366c204405d602515c2b17e860a801a7af67a292"</string>
+		</dict>
 		<key>Frameworks/_tcl_data</key>
 		<dict>
 			<key>symlink</key>
@@ -1331,86 +1385,41 @@
 			<key>symlink</key>
 			<string>../Resources/base_library.zip</string>
 		</dict>
-		<key>Frameworks/libbz2.dylib</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			IXPMIMknrH21pGNIjoySoWY2nxs=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"2173cc20c927ac7db5a463488e8c92a166369f1b"</string>
-		</dict>
 		<key>Frameworks/libcrypto.3.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			L0ZLMMfita1pBu3dcWknyLMga7A=
+			BwAd32S/vr3NwwdKe0lfV5qoL4c=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2f464b30c7e2b5ad6906eddd716927c8b3206bb0"</string>
-		</dict>
-		<key>Frameworks/libexpat.1.dylib</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			GKSO/WpHiyi72A3O+2Zw8dDTLE0=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"18a48efd6a478b28bbd80dcefb6670f1d0d32c4d"</string>
-		</dict>
-		<key>Frameworks/liblzma.5.dylib</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			1kMDq0WpOBksTv3I3SYIZfI+KR8=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"d64303ab45a938192c4efdc8dd260865f23e291f"</string>
-		</dict>
-		<key>Frameworks/libpython3.12.dylib</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			S1rBf2ROSQUPz0IksV8xpf1Waeo=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"4b5ac17f644e49050fcf4224b15f31a5fd5669ea"</string>
+			<string>cdhash H"07001ddf64bfbebdcdc3074a7b495f579aa82f87"</string>
 		</dict>
 		<key>Frameworks/libssl.3.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			rQc5QbHvMHuc/F8mqmcaMSWM5b8=
+			2qTQ071+5UQorYXiCOu4sFp15HY=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"ad073941b1ef307b9cfc5f26aa671a31258ce5bf"</string>
+			<string>cdhash H"daa4d0d3bd7ee54428ad85e208ebb8b05a75e476"</string>
 		</dict>
 		<key>Frameworks/libtcl8.6.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			9ykP2mH3vGgGtTdp1k1FoE651W4=
+			a4t58p08UY0XmgKm98sBxihNaF4=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f7290fda61f7bc6806b53769d64d45a04eb9d56e"</string>
+			<string>cdhash H"6b8b79f29d3c518d179a02a6f7cb01c6284d685e"</string>
 		</dict>
 		<key>Frameworks/libtk8.6.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			GeBhlnS3WhB3d6cj64nzSCk6d1c=
+			pSSoikCqDC8bodmmxzTPYGV01Qo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"19e0619674b75a107777a723eb89f348293a7757"</string>
-		</dict>
-		<key>Frameworks/libz.1.dylib</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			fU2JABWlUGHqhy45BFO3xvYjsi4=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"7d4d890015a55061ea872e390453b7c6f623b22e"</string>
+			<string>cdhash H"a524a88a40aa0c2f1ba1d9a6c734cf606574d50a"</string>
 		</dict>
 		<key>Frameworks/python3.12</key>
 		<dict>
@@ -1421,397 +1430,397 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			c5/b+c9+94AS0bEj2gGysILBigc=
+			9DtfZpOYevX7dLNrXqzl+4273LM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"739fdbf9cf7ef78012d1b123da01b2b082c18a07"</string>
+			<string>cdhash H"f43b5f6693987af5fb74b36b5eace5fb8dbbdcb3"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_blake2.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			9zqITIFHYKaLMnscwJ9yOPiK6rw=
+			aYEcCTXUyyXZ4Hz/nAgE/9X1Xus=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"f73a884c814760a68b327b1cc09f7238f88aeabc"</string>
+			<string>cdhash H"69811c0935d4cb25d9e07cff9c0804ffd5f55eeb"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_bz2.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			iMILoUndRzV6M0ZR5lkTQ9e5fVI=
+			DCvvSr65+59t7jSUa6wuzMUC4Xo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"88c20ba149dd47357a334651e6591343d7b97d52"</string>
+			<string>cdhash H"0c2bef4abeb9fb9f6dee34946bac2eccc502e17a"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_codecs_cn.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			yHquAjCSaEqaNuY3T+pI6+ssFeU=
+			RLGXI8R64ItUnHtGQmchwBaQrVM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"c87aae023092684a9a36e6374fea48ebeb2c15e5"</string>
+			<string>cdhash H"44b19723c47ae08b549c7b46426721c01690ad53"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_codecs_hk.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			RSBj6Ny/eegreR9NkZm+MSrcUtI=
+			YvIBXBPjZEkNYeuMZv6LzBEGLHM=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"452063e8dcbf79e82b791f4d9199be312adc52d2"</string>
+			<string>cdhash H"62f2015c13e364490d61eb8c66fe8bcc11062c73"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_codecs_iso2022.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			HQQGDCituvr1Jj4cSd9Ye/B2Tgs=
+			1kv0D0JIlUZMhf1DJvatCKbkVRE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"1d04060c28adbafaf5263e1c49df587bf0764e0b"</string>
+			<string>cdhash H"d64bf40f424895464c85fd4326f6ad08a6e45511"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_codecs_jp.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			RgXbbZ+ghozOQsPQ0niMDDD7RaQ=
+			RcRZ5bRuu1qjBHPN7pTT4cNQzCY=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"4605db6d9fa0868cce42c3d0d2788c0c30fb45a4"</string>
+			<string>cdhash H"45c459e5b46ebb5aa30473cdee94d3e1c350cc26"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_codecs_kr.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			GNd87vWcbIReDri9Dh0/ThzUmwE=
+			83DXy+oYkjB9NWkMLsPdqf1rWLs=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"18d77ceef59c6c845e0eb8bd0e1d3f4e1cd49b01"</string>
+			<string>cdhash H"f370d7cbea1892307d35690c2ec3dda9fd6b58bb"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_codecs_tw.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			KvlOTOUI98Xw8KSEoC+eq/1eo2Y=
+			Op84kv5Avz22FMugnSLyS2X860A=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2af94e4ce508f7c5f0f0a484a02f9eabfd5ea366"</string>
+			<string>cdhash H"3a9f3892fe40bf3db614cba09d22f24b65fceb40"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_contextvars.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			uW5vsnt25EfaOY381xsQoPtqFg4=
+			+dBVxOMyZskxuSkyx1ec2NXmjq0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"b96e6fb27b76e447da398dfcd71b10a0fb6a160e"</string>
+			<string>cdhash H"f9d055c4e33266c931b92932c7579cd8d5e68ead"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_csv.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			zW2EgLkGWgLFsTWzmhUfo0FCxrU=
+			HKsvSsGRnJ8oecCUkxsWt+BjPa8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"cd6d8480b9065a02c5b135b39a151fa34142c6b5"</string>
+			<string>cdhash H"1cab2f4ac1919c9f2879c094931b16b7e0633daf"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_datetime.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			sVZipbrZPqPz/g7AA7EFlg63GoE=
+			lZ53K4/WhiV9eqWZUyafPJAUTj8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"b15662a5bad93ea3f3fe0ec003b105960eb71a81"</string>
+			<string>cdhash H"959e772b8fd686257d7aa59953269f3c90144e3f"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_decimal.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			023Mc0VqMPLOr7BLLH4EIRa/dM0=
+			xxshBQgChngmKoy637F5xrfGNMo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d36dcc73456a30f2ceafb04b2c7e042116bf74cd"</string>
+			<string>cdhash H"c71b210508028678262a8cbadfb179c6b7c634ca"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_hashlib.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			33JUsbMpgMirUxj/Mp666j8d4/c=
+			slwXZb2JC/3/g4IoyD1j8v43hjw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"df7254b1b32980c8ab5318ff329ebaea3f1de3f7"</string>
+			<string>cdhash H"b25c1765bd890bfdff838228c83d63f2fe37863c"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_heapq.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			5Mf4WEshT5CVaafW01APXSBg5pI=
+			klwcxa1wltGMkXnfxDx+XKEM89Y=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e4c7f8584b214f909569a7d6d3500f5d2060e692"</string>
+			<string>cdhash H"925c1cc5ad7096d18c9179dfc43c7e5ca10cf3d6"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_json.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			rLrKyGpAnE2aKZfwtHoYeH5gARU=
+			OxRQVugPjDMAjryogWYa20xQ1qE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"acbacac86a409c4d9a2997f0b47a18787e600115"</string>
+			<string>cdhash H"3b145056e80f8c33008ebca881661adb4c50d6a1"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_lzma.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			1SRjxidAUAaWEtl2Or3OnZt6Rsk=
+			1y14XKeX9hVodYDRgRsFOCog8TA=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d52463c6274050069612d9763abdce9d9b7a46c9"</string>
+			<string>cdhash H"d72d785ca797f615687580d1811b05382a20f130"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_md5.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			asroyhfHhBvfrvM40QDdY8qIH+M=
+			F5bDTEzIUNu/0138LpAIw3XpebQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6acae8ca17c7841bdfaef338d100dd63ca881fe3"</string>
+			<string>cdhash H"1796c34c4cc850dbbfd35dfc2e9008c375e979b4"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_multibytecodec.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			ag2EehMXEPhY/MksS8fby1SYZZg=
+			oT1rsRxS5MKR4SOAlYtHPRWa5/g=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"6a0d847a131710f858fcc92c4bc7dbcb54986598"</string>
+			<string>cdhash H"a13d6bb11c52e4c291e12380958b473d159ae7f8"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_opcode.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			CG9051xNeC6fE0wu7FdCu7/yb6Q=
+			ZoXWWy1nFQ8ouDX1Ume+7e3NeDw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"086f74e75c4d782e9f134c2eec5742bbbff26fa4"</string>
+			<string>cdhash H"6685d65b2d67150f28b835f55267beededcd783c"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_pickle.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			ysIrXHOI49vS5vCWRR4ya8VJtFM=
+			fgG33nrTkyeRP7QnvREjdzq7Tjk=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"cac22b5c7388e3dbd2e6f096451e326bc549b453"</string>
+			<string>cdhash H"7e01b7de7ad39327913fb427bd1123773abb4e39"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_posixsubprocess.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			WBOyRxayWgdFJzkCF5ze2pOcpKo=
+			x84xdMmWILbEufmIocJ9UiNcVmg=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5813b24716b25a0745273902179cdeda939ca4aa"</string>
+			<string>cdhash H"c7ce3174c99620b6c4b9f988a1c27d52235c5668"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_random.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			XJtRPoumDjE1aP9WZ6SfknU6AZo=
+			tpHwk5SypeIi+s0FdRNqrAgQMmw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5c9b513e8ba60e313568ff5667a49f92753a019a"</string>
+			<string>cdhash H"b691f09394b2a5e222facd0575136aac0810326c"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_scproxy.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			x+2BkCdidn3M1inIu5yYF9y5whA=
+			ymgV1niIOfkgulk9vCMeEfDwTVw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"c7ed81902762767dccd629c8bb9c9817dcb9c210"</string>
+			<string>cdhash H"ca6815d6788839f920ba593dbc231e11f0f04d5c"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_sha1.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			CsWuYvEETvnJIazNoHF94gMY3rM=
+			IjX//xeeM8BGqJC7BV0YpUTOZyo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"0ac5ae62f1044ef9c921accda0717de20318deb3"</string>
+			<string>cdhash H"2235ffff179e33c046a890bb055d18a544ce672a"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_sha2.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			l9w8Iz5IvuvjyxRPPVIv2GoI1wY=
+			qPqjzIeINWlT7wgTOuLjuPLJDs0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"97dc3c233e48beebe3cb144f3d522fd86a08d706"</string>
+			<string>cdhash H"a8faa3cc8788356953ef08133ae2e3b8f2c90ecd"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_sha3.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			0fMjEDNQtRuaJsCp0DI89/hmk6Q=
+			f+/XE0uMqVUCEWYC2iUG+Fj1pEg=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d1f323103350b51b9a26c0a9d0323cf7f86693a4"</string>
+			<string>cdhash H"7fefd7134b8ca95502116602da2506f858f5a448"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_socket.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			gbgyVSaVlAx2jCH+WR0w5IF0KOY=
+			O6Ba8BGo6/AZ31VnrHErUWdoACI=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"81b832552695940c768c21fe591d30e4817428e6"</string>
+			<string>cdhash H"3ba05af011a8ebf019df5567ac712b5167680022"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_ssl.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			X0GwwpaSZmoUemlieShVHVTArfc=
+			FIFAoK9fsVevD3HFeBLbFHmrJ3s=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5f41b0c29692666a147a69627928551d54c0adf7"</string>
+			<string>cdhash H"148140a0af5fb157af0f71c57812db1479ab277b"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_statistics.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			sDhKG1XCIjxMmp+De3hn439ghEE=
+			T2LnhNAb8K4ul0aX3hsdiMoRAQk=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"b0384a1b55c2223c4c9a9f837b7867e37f608441"</string>
+			<string>cdhash H"4f62e784d01bf0ae2e974697de1b1d88ca110109"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_struct.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			3SdPMRsdbF7tMbCbETv7Nl915m0=
+			oSF7cxpXhKBqOZYWM+qfasOQaQY=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"dd274f311b1d6c5eed31b09b113bfb365f75e66d"</string>
+			<string>cdhash H"a1217b731a5784a06a39961633ea9f6ac3906906"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_tkinter.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			K9/zdLZzav31MpgNFE9hXpBHj7w=
+			uRoXwooOBNwS3fAqUbLIEgf9cOU=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2bdff374b6736afdf532980d144f615e90478fbc"</string>
+			<string>cdhash H"b91a17c28a0e04dc12ddf02a51b2c81207fd70e5"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_uuid.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			uvbV7Fl9p0ZCf9lRo8ZS+JFbboQ=
+			/UQUkUlL6sARrj8s//eHc+hGlRQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"baf6d5ec597da746427fd951a3c652f8915b6e84"</string>
+			<string>cdhash H"fd441491494beac011ae3f2cfff78773e8469514"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/array.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			kPcyl5MoP5K8qyikJ8QPqkici+k=
+			vu3nOGrm/5poff3upN2VfrTC9v4=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"90f7329793283f92bcab28a427c40faa489c8be9"</string>
+			<string>cdhash H"beede7386ae6ff9a687dfdeea4dd957eb4c2f6fe"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/binascii.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			dIaOeN3HCvEsxlCDIKX6YJYWouM=
+			E1uNisuz6mEvLFwGImNUZRt7FG0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"74868e78ddc70af12cc6508320a5fa609616a2e3"</string>
+			<string>cdhash H"135b8d8acbb3ea612f2c5c06226354651b7b146d"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/fcntl.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			XCX3wF0gdGRwP+d3qZZvenx1itI=
+			wsEVswY82icURTENHI+Z/f1YsnE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5c25f7c05d207464703fe777a9966f7a7c758ad2"</string>
+			<string>cdhash H"c2c115b3063cda271445310d1c8f99fdfd58b271"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/grp.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			vZdtkuB29vfyR9YFT7NCBTv6BiA=
+			M7WtLU/qUeMy46JwUiIf4IzYVXQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"bd976d92e076f6f7f247d6054fb342053bfa0620"</string>
+			<string>cdhash H"33b5ad2d4fea51e332e3a27052221fe08cd85574"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/math.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			fBEZVkCqTU2SH1DJIop4+w8W7aU=
+			2/ta9Orbakcq9l9Zro9IK06rkd8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"7c11195640aa4d4d921f50c9228a78fb0f16eda5"</string>
+			<string>cdhash H"dbfb5af4eadb6a472af65f59ae8f482b4eab91df"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/pyexpat.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			HXFcOc4qEM8NNi3Qq8ScmQSPCpk=
+			MnM5DFcuOfpKQBz83511eUt7aSY=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"1d715c39ce2a10cf0d362dd0abc49c99048f0a99"</string>
+			<string>cdhash H"3273390c572e39fa4a401cfcdf9d75794b7b6926"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/resource.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			K49VNBnyJsTFcDRBgyiH3CWUzYI=
+			sCd3iBi8YLrxO96EGM0dnJM0ngA=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"2b8f553419f226c4c5703441832887dc2594cd82"</string>
+			<string>cdhash H"b027778818bc60baf13bde8418cd1d9c93349e00"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/select.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			kApWTzjuQZzS1whpsVK6eFgWL/M=
+			5TfcuqfoFmR4R71mbxmj+AD55YE=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"900a564f38ee419cd2d70869b152ba7858162ff3"</string>
+			<string>cdhash H"e537dcbaa7e816647847bd666f19a3f800f9e581"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/termios.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			4uQ+sIpSSDbKsGaa8dBn3+pz9PQ=
+			3URaWQ+TGKq8UX3vccySO3HMT54=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e2e43eb08a524836cab0669af1d067dfea73f4f4"</string>
+			<string>cdhash H"dd445a590f9318aabc517def71cc923b71cc4f9e"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/unicodedata.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			UNLdVDzU9sSYSBg2zbfSLa5GERM=
+			t2bczJY5zfI1V9jpixkLxJHd8pQ=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"50d2dd543cd4f6c498481836cdb7d22dae461113"</string>
+			<string>cdhash H"b766dccc9639cdf23557d8e98b190bc491ddf294"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/zlib.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			JN2ciMX1cr658qJvGlr4K0KcjOw=
+			45wLx6I7dvq5renRqnV3OIDuU6c=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"24dd9c88c5f572beb9f2a26f1a5af82b429c8cec"</string>
+			<string>cdhash H"e39c0bc7a23b76fab9ade9d1aa75773880ee53a7"</string>
 		</dict>
 		<key>Frameworks/tcl8</key>
 		<dict>
@@ -1823,18 +1832,28 @@
 			<key>symlink</key>
 			<string>../Resources/updates</string>
 		</dict>
+		<key>Resources/Python</key>
+		<dict>
+			<key>symlink</key>
+			<string>Python.framework/Versions/3.12/Python</string>
+		</dict>
+		<key>Resources/Python.framework</key>
+		<dict>
+			<key>symlink</key>
+			<string>../Frameworks/Python.framework</string>
+		</dict>
 		<key>Resources/_tcl_data/auto.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			KhdudGfBXxIZhmLbaLne2gcm9PdEFmyFBguJTOZ20FU=
+			IwIjTxI6EP7zFapQiTvTSbxSIB+hL23HvAn9/I6Ev4U=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/clock.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			fyfUALCIoOcq3rSNFwWYkulfCKKgOXC9dM37NbEGYYs=
+			CNYeNrtTaqAv2gQKvq1VaoYgGO+ae0ZfEGOpc9jaOvA=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/encoding/ascii.enc</key>
@@ -2401,7 +2420,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			m25ADrhUQOxkq2a0rBEVRlhXQMnKYf0VZADXFTy62fQ=
+			yxY0mAmW/zk6ADSvpe0t/kr8LislxOOZx018PcuO4j0=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/http1.0/http.tcl</key>
@@ -2422,7 +2441,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			Gsm0G8gwod6p3MktsAwp21qvPLuDdm1hGb5a1I+KXok=
+			N06Og9UB3AKD1LbK5g2WtGFBBI5aV9FQDdN5+WaHn5g=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/msgs/af.msg</key>
@@ -3318,21 +3337,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			iVyqFaX7+fSZv+pq1lsj8L1IgEJqccZdlaSaRDyUAs0=
+			BRPILgNANTDA7mbTSraX0hPpot74bdk1zF9r8Bw7fc8=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/opt0.4/pkgIndex.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			/o0SKRdgQ+4Zfz23UL1srfJl17PRJ8h83C8OEOLGpUk=
+			vEr/gTJALmJE9Jez+Em2swwyjbhRKgTkyGxSOoDy/mg=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/package.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			wT3PTRZZqYdnEpBZIli0NtJtz9oGEldh7x8EDGhpi2c=
+			nt+Xg/4myFBA3ISbeu2DUL7LJRRLayzmBo9Yz99XT0o=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/parray.tcl</key>
@@ -3346,7 +3365,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			xYtv81FHG6snVQGYNT4QXTid3SLPOf0YxiM11MkpVB0=
+			85ul2FwgQahuph/ab2fh4CgfjW6nzAlDG4hf/2XXH2U=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/tclAppInit.c</key>
@@ -3360,21 +3379,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			lixg634FAGFGL/cs7JdBp/GDB69KqmjXZlF0+QSELRM=
+			+DK8EyOFZdFCfEY/3KzvCpP03ANSwOPzW1c9mxHerKU=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/tm.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			6IzAc2Qxh8CjvqNbrHrWmMMXq+E4eoAWPNHZhTP57vo=
+			eODV+3flG+DJnN/f71lskbZroRYMRsSKYyZmEbvPJq0=
 			</data>
 		</dict>
 		<key>Resources/_tcl_data/word.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			sFkrDh/Ww8DnBBaNSvl+nVyribXPUXbhntW9X16yoXU=
+			8Y6K4pqo7Sviy7VWi0JD9lT3+wqiBm4Wl3hj7hQVubw=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/bgerror.tcl</key>
@@ -3395,14 +3414,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			MM5jHLHMzSBXABgWLG/+8xutN471st4tmCyW5l62LvY=
+			NR84nwkNDP5bEiL4N4VjCh7q5U9oJ0d4RYBbuz0Rn3w=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/clrpick.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rXZElLank9PcjvBrmC0U8JofzvSlmRIu28Fkh9NcRyw=
+			xVB5xDQmWXvoNsi43tBKvauOHNfSuQqJivlSD4AsYEA=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/comdlg.tcl</key>
@@ -3416,7 +3435,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			bqVSZ0YldJItnZgIQOMDy34XS8tsLXKI9f6F9V4emRA=
+			ZcMnE6v5gujrWx073RQa7BtFvYl7G2CHa/Ff7bV5rP0=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/dialog.tcl</key>
@@ -3430,7 +3449,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			wVCiItjGtjpQ/iStyeD5XYNLp8zhWmcKTqRze/mtlhI=
+			kvsv5bIsxpf5OW02gc89McA1mNfY0YWLS3q5dunIClw=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/focus.tcl</key>
@@ -3444,14 +3463,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			Bwz/Z+6AHd8YLZjjVxL3ycGVCDDA46asckFXpnCmt8g=
+			iqfPB4wm85bhpCGgPQ89BXMeQT/USHUOGS2r/Tqrc8U=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/iconlist.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			R3FgxWt/+5DwJ7EMbGvr6xKPf6iUEEYI2Q2bVfKn4bQ=
+			Cwh+IFJg1eJUWVpBi6LwnbtV6WefoOjPqZR6eSFDfvw=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/icons.tcl</key>
@@ -3570,7 +3589,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			t3IfFKzQF8u3L6LiILxnrxKGv+VQQUf1H4tJYozCp7o=
+			Oek6K9dbkVYjXzJx6gL9fKyCtUKuVt9zPNe9YqLEIH4=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/mkpsenc.tcl</key>
@@ -3710,7 +3729,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			1myFk7Lb6lTeX89Q15hKmKqkmorlnLYXlsdtx/lAW6I=
+			TVsyB7WkBymheinas89+5j5T+cB90FlKvwr4OioBoXg=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/obsolete.tcl</key>
@@ -3745,7 +3764,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			yLUX/TyGUYKgBzwHTmE7Ix7AJf5Tx7VJRQH02Vow6wA=
+			AvgXoZo7HxV4BT51wGsrK3yu8+9FsBxBs0mCqlMA6BA=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/safetk.tcl</key>
@@ -3787,21 +3806,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			rGYFSNXk937UeFjtJYi+QZMZJuR4iap+VSJ7UMfG1dw=
+			eTDIeB1kOMEeOh8PPTwdBS6SS9+3/ef8F636uc4+QQI=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/text.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			csPHxqHtde3bJeHeD+Lt0U03XEmIiZCzCBboA2uK6do=
+			/RK8o8fc7fP8ZkCQKvHJ9IvF3yfJFT7a7BVBPxWB5Kk=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/tk.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Nf25Nzd+1SFjECi2CBSZZc7yRsE9FkJIYmec9LewuGs=
+			d5znCZZ10fzaqKU99Yz1stptXwPNv3qMMYhgvQGm5G8=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/tkAppInit.c</key>
@@ -3815,7 +3834,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			M5p3VylluVE7Dk6SSAWOwrO4C55G8Ia3zhZHNIQ2YvI=
+			tYHxUjBBC/jYxr36NppiZw6JtVYqIhcVaxk7PORnIVM=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/ttk/altTheme.tcl</key>
@@ -3878,28 +3897,28 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			HlSi9Y6ijhJUDaNV2MvTcd3DwF+J0DE2EedRIa+ztFQ=
+			nDQXNeF5J5dmJA3Im4O2qeusYIkAZSUf5c9Dj4sU2Tc=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/ttk/fonts.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			77Th1dzU9ZHDcHlpZq9YfVL+dRwpX+OPMh7I9xHfd5A=
+			Hy0pZbLHKulTwIKaInV3raiVnSRQJjizGGqoQLZ4zDo=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/ttk/menubutton.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			/wxdt0Mcbg/wD6afnyN/xRGrSodNJ4dxc2tG4thyQjk=
+			oW37Hq93sFoO+StMx9APVZ+2zwsvc1w6+sUDA8UkoIE=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/ttk/notebook.tcl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zPNbvc3nPf9ifGOT43ZxPxqRYgnhd+ta7yI+VM3d51s=
+			i++TNTpxNENNx4Dup3tS723IU6GT6NgaEy0OJO2TI0s=
 			</data>
 		</dict>
 		<key>Resources/_tk_data/ttk/panedwindow.tcl</key>
@@ -4021,6 +4040,76 @@
 			qDH3nmZntx5ropvy/NeLd3oFgjWBeOWskdA+HrcMNbg=
 			</data>
 		</dict>
+		<key>Resources/assets/app.iconset/icon_128x128.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			ctSaPnKassc6OxlYM8CFd0svUx/so9/bMKHGjYbyf+w=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_128x128@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			lTY4QBTiN5acUACi7mwOFoywxXRQ/5TUW3JxlU5XbP8=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_16x16.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			UFVy44oyDr19IMzb4vRdO5uDOo9NBjMdMGNCzW/CaLY=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_16x16@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			2iCJGwm++Vo1Smy8uY9iHSPBSaGmTqy5uas/ZWf0t+M=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_256x256.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			lTY4QBTiN5acUACi7mwOFoywxXRQ/5TUW3JxlU5XbP8=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_256x256@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			9X5RMWxVbMA/8QqizxxrEthIBlyBhI47BPvTdgoeqpg=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_32x32.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			2iCJGwm++Vo1Smy8uY9iHSPBSaGmTqy5uas/ZWf0t+M=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_32x32@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			+HvJSH0h009EiP9lmCSn2768Tr86ezkoLjnujBIQ7R4=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_512x512.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			9X5RMWxVbMA/8QqizxxrEthIBlyBhI47BPvTdgoeqpg=
+			</data>
+		</dict>
+		<key>Resources/assets/app.iconset/icon_512x512@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			mZ9LqdRj3kAi+VuJluIlOe0z7+P77k3q7ekfTPk3DFU=
+			</data>
+		</dict>
 		<key>Resources/assets/logo.jpg</key>
 		<dict>
 			<key>hash2</key>
@@ -4039,33 +4128,13 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			EHT0nLgGOqQvmvY3JAfEcoB4lZ5DXcO60EwHPStlJf8=
+			u98ljVjuFQIJaW8jppv2+6O5qAosZalYXn98im0NmV0=
 			</data>
-		</dict>
-		<key>Resources/libbz2.dylib</key>
-		<dict>
-			<key>symlink</key>
-			<string>../Frameworks/libbz2.dylib</string>
 		</dict>
 		<key>Resources/libcrypto.3.dylib</key>
 		<dict>
 			<key>symlink</key>
 			<string>../Frameworks/libcrypto.3.dylib</string>
-		</dict>
-		<key>Resources/libexpat.1.dylib</key>
-		<dict>
-			<key>symlink</key>
-			<string>../Frameworks/libexpat.1.dylib</string>
-		</dict>
-		<key>Resources/liblzma.5.dylib</key>
-		<dict>
-			<key>symlink</key>
-			<string>../Frameworks/liblzma.5.dylib</string>
-		</dict>
-		<key>Resources/libpython3.12.dylib</key>
-		<dict>
-			<key>symlink</key>
-			<string>../Frameworks/libpython3.12.dylib</string>
 		</dict>
 		<key>Resources/libssl.3.dylib</key>
 		<dict>
@@ -4082,11 +4151,6 @@
 			<key>symlink</key>
 			<string>../Frameworks/libtk8.6.dylib</string>
 		</dict>
-		<key>Resources/libz.1.dylib</key>
-		<dict>
-			<key>symlink</key>
-			<string>../Frameworks/libz.1.dylib</string>
-		</dict>
 		<key>Resources/python3.12</key>
 		<dict>
 			<key>symlink</key>
@@ -4096,42 +4160,42 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			bF2RBV/onVQcO6H5bJZ2G2v0ioToQBjZlYX3jyZDxtU=
+			zHmOsmZZyxJGnPkfLnlVW0SXPdZwe/6/eqK52Y2AaoI=
 			</data>
 		</dict>
 		<key>Resources/tcl8/8.4/platform/shell-1.1.4.tm</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			L4EqBVBxa4iTAXSoyiRWmEJ80oZoDAloVYriaatSRA0=
+			RmVOWMVr/zdTEOOLvFxo9kLAmeCclRtbrZrIHYo3fgE=
 			</data>
 		</dict>
 		<key>Resources/tcl8/8.5/msgcat-1.6.1.tm</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1rnKuwNTnhFq7LgO/Hpp1D+TYHX2rVx336XUba193H8=
+			wpWJWWBp72mPE5QmLQGfVwigWlIR2P7Oqkw6t09dfZo=
 			</data>
 		</dict>
-		<key>Resources/tcl8/8.5/tcltest-2.5.5.tm</key>
+		<key>Resources/tcl8/8.5/tcltest-2.5.7.tm</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			amgU794WcqaMBU2QQXyr32HK6DNERs9oyIRZ4s4L97Y=
+			32I9ic7w+l0sU8uazh7o/0r9WnNatthuaHV9qJEi8ms=
 			</data>
 		</dict>
 		<key>Resources/tcl8/8.6/http-2.9.8.tm</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Ii+ggBfmd6U2rxGrQoL0LozzcWnvnY0/RrqdpjHNnTs=
+			dR6lWt85BSAdl8h4jn16thgKT+Idr7h2B55QH6RI7KA=
 			</data>
 		</dict>
-		<key>Resources/tcl8/8.6/tdbc/sqlite3-1.1.5.tm</key>
+		<key>Resources/tcl8/8.6/tdbc/sqlite3-1.1.7.tm</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			9ReD0neL9kkQ0sf1NbIrcwTthXvS97eFqIANP65bkq8=
+			RFO4Oh4rOFyr8wbSi2p2UN4ac4yGK7jy717qKvlpCSI=
 			</data>
 		</dict>
 		<key>Resources/updates/.gitkeep</key>
@@ -4145,14 +4209,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			QDQziW8V4/yVb/Eyrpg1BgWd6t2Vm58sY19/VDOge20=
+			OGztlFL2JeOvpgM3wg58aYjKvyU7jgK9BBb8/5UXR1Y=
 			</data>
 		</dict>
 		<key>Resources/updates/student_manifest.json</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qWCsGldoWW8+RZBM6Egd7wc54l2aAWSkU1a631vlmgI=
+			80MOxy3NNN/cj9Q+9xVS8Yq31L5sCPJ2dqZQ2kMI5g0=
 			</data>
 		</dict>
 	</dict>

@@ -27,6 +27,11 @@ updates/student_manifest.json
 
 # Старые/временные сборки
 dist/KIBERoneTeacher*.exe
+# Onedir папки PyInstaller (оставляем только .app и .exe)
+dist/KIBERoneTutor/
+dist/KIBERoneStudent/
+# Большой установщик miniconda
+miniconda.sh
 dist/*_new.exe
 dist/*_UPDATE.exe
 dist/*_old.exe
