@@ -713,6 +713,7 @@ class ClassroomServer:
                             age=payload.get("age", ...),
                             group_id=payload.get("group_id"),
                             comment=payload.get("comment"),
+                            portfolio_url=payload.get("portfolio_url"),
                         )
                         self._json(HTTPStatus.OK, {"ok": True, "student": student})
                     return

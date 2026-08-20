@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import threading
-import time
 import tkinter as tk
+import webbrowser
 from tkinter import messagebox, simpledialog, ttk
 from typing import Callable
 
@@ -25,6 +24,17 @@ def _fmt_ts(ts: float | None) -> str:
         return datetime.datetime.fromtimestamp(ts).strftime("%d.%m.%Y %H:%M")
     except Exception:
         return str(ts)
+
+
+def _chip(parent: tk.Widget, text: str, bg: str, fg: str) -> tk.Label:
+    """Маленький цветной тег-чип."""
+    lbl = tk.Label(
+        parent, text=text,
+        bg=bg, fg=fg,
+        font=(FONTS["label"][0], FONTS["label"][1] - 1, "bold"),
+        padx=6, pady=2, relief="flat", bd=0,
+    )
+    return lbl
 
 
 class RosterTab(ttk.Frame):
@@ -60,41 +70,48 @@ class RosterTab(ttk.Frame):
 
     def _build(self) -> None:
         paned = ttk.Panedwindow(self, orient="horizontal")
-        paned.pack(fill="both", expand=True)
+        paned.pack(fill="both", expand=True, padx=8, pady=8)
 
-        # Левая колонка — группы
+        # ── Левая колонка: группы ──────────────────────────────────────────
         left = ttk.Frame(paned, padding=(0, 0, 6, 0))
         paned.add(left, weight=1)
 
-        ttk.Label(left, text="Группы", style="Title.TLabel").pack(anchor="w", pady=(0, 4))
+        grp_hdr = ttk.Frame(left)
+        grp_hdr.pack(fill="x", pady=(0, 6))
+        ttk.Label(grp_hdr, text="Группы", style="Title.TLabel").pack(side="left")
+        ttk.Button(grp_hdr, text="＋", width=3, command=self._add_group, style="Ghost.TButton").pack(side="right")
+        ttk.Button(grp_hdr, text="✎", width=3, command=self._edit_group, style="Ghost.TButton").pack(side="right", padx=2)
+        ttk.Button(grp_hdr, text="✕", width=3, command=self._del_group, style="Ghost.TButton").pack(side="right")
+
+        list_card = tk.Frame(left, bg=COLORS["surface"], relief="flat",
+                             highlightthickness=1, highlightbackground=COLORS["border"])
+        list_card.pack(fill="both", expand=True)
 
         self._group_list = tk.Listbox(
-            left,
+            list_card,
             font=FONTS["body"],
             bg=COLORS["surface"],
             fg=COLORS["ink"],
-            selectbackground=COLORS["accent_soft"],
-            selectforeground=COLORS["ink"],
+            selectbackground=COLORS["accent"],
+            selectforeground="#FFFFFF",
             activestyle="none",
             relief="flat",
             borderwidth=0,
-            highlightthickness=1,
-            highlightbackground=COLORS["border"],
+            highlightthickness=0,
         )
-        self._group_list.pack(fill="both", expand=True)
+        self._group_list.pack(fill="both", expand=True, padx=4, pady=4)
         self._group_list.bind("<<ListboxSelect>>", self._on_group_select)
 
-        grp_btns = ttk.Frame(left)
-        grp_btns.pack(fill="x", pady=(6, 0))
-        ttk.Button(grp_btns, text="+ Группа", command=self._add_group).pack(side="left")
-        ttk.Button(grp_btns, text="✎", width=3, command=self._edit_group).pack(side="left", padx=4)
-        ttk.Button(grp_btns, text="✕", width=3, command=self._del_group).pack(side="left")
-
-        # Средняя колонка — ученики
+        # ── Средняя колонка: ученики ───────────────────────────────────────
         mid = ttk.Frame(paned, padding=(0, 0, 6, 0))
         paned.add(mid, weight=1)
 
-        ttk.Label(mid, text="Ученики", style="Title.TLabel").pack(anchor="w", pady=(0, 4))
+        stu_hdr = ttk.Frame(mid)
+        stu_hdr.pack(fill="x", pady=(0, 6))
+        ttk.Label(stu_hdr, text="Ученики", style="Title.TLabel").pack(side="left")
+        ttk.Button(stu_hdr, text="＋", width=3, command=self._add_student, style="Ghost.TButton").pack(side="right")
+        ttk.Button(stu_hdr, text="✎", width=3, command=self._edit_student, style="Ghost.TButton").pack(side="right", padx=2)
+        ttk.Button(stu_hdr, text="✕", width=3, command=self._del_student, style="Ghost.TButton").pack(side="right")
 
         cols = ("name", "age", "last_session")
         self._student_tree = ttk.Treeview(mid, columns=cols, show="headings", selectmode="browse")
@@ -102,85 +119,127 @@ class RosterTab(ttk.Frame):
         self._student_tree.heading("age", text="Возраст")
         self._student_tree.heading("last_session", text="Последнее занятие")
         self._student_tree.column("name", width=140, stretch=True)
-        self._student_tree.column("age", width=60)
+        self._student_tree.column("age", width=55, anchor="center")
         self._student_tree.column("last_session", width=120)
         self._student_tree.pack(fill="both", expand=True)
         self._student_tree.bind("<<TreeviewSelect>>", self._on_student_select)
 
-        stu_btns = ttk.Frame(mid)
-        stu_btns.pack(fill="x", pady=(6, 0))
-        ttk.Button(stu_btns, text="+ Ученик", command=self._add_student).pack(side="left")
-        ttk.Button(stu_btns, text="✎", width=3, command=self._edit_student).pack(side="left", padx=4)
-        ttk.Button(stu_btns, text="✕", width=3, command=self._del_student).pack(side="left")
+        # ── Правая панель: карточка ученика ───────────────────────────────
+        right_outer = ttk.Frame(paned, padding=(6, 0, 0, 0))
+        paned.add(right_outer, weight=3)
 
-        # Правая панель — карточка ученика
-        right = ttk.Frame(paned, padding=(6, 0, 0, 0))
-        paned.add(right, weight=2)
+        # Шапка карточки
+        card_header = tk.Frame(right_outer, bg=COLORS["header"], padx=14, pady=10)
+        card_header.pack(fill="x", pady=(0, 8))
 
-        self._card_name = ttk.Label(right, text="", style="Title.TLabel")
+        self._card_name = tk.Label(
+            card_header, text="Выбери ученика",
+            bg=COLORS["header"], fg=COLORS["header_fg"],
+            font=FONTS["title"], anchor="w",
+        )
         self._card_name.pack(anchor="w")
-        self._card_meta = ttk.Label(right, text="", style="Muted.TLabel")
-        self._card_meta.pack(anchor="w", pady=(2, 10))
 
-        # Комментарий
-        comment_lf = ttk.LabelFrame(right, text="Комментарий тьютора", padding=8)
-        comment_lf.pack(fill="x", pady=(0, 10))
-        self._comment_box = tk.Text(
-            comment_lf,
-            height=3,
-            wrap="word",
+        self._card_meta = tk.Label(
+            card_header, text="",
+            bg=COLORS["header"], fg="#94A3B8",
+            font=FONTS["body"], anchor="w",
+        )
+        self._card_meta.pack(anchor="w", pady=(2, 0))
+
+        # Кнопки шапки
+        card_btn_row = tk.Frame(card_header, bg=COLORS["header"])
+        card_btn_row.pack(anchor="w", pady=(8, 0))
+
+        self._portfolio_btn = tk.Button(
+            card_btn_row,
+            text="🔗  Портфолио",
+            bg=COLORS["accent"], fg="#FFFFFF",
             font=FONTS["body"],
-            bg=COLORS["surface"],
-            fg=COLORS["ink"],
-            relief="flat",
-            borderwidth=0,
-            highlightthickness=1,
-            highlightbackground=COLORS["border"],
+            relief="flat", padx=8, pady=3, cursor="hand2",
+            command=self._open_portfolio,
+            state="disabled",
+        )
+        self._portfolio_btn.pack(side="left")
+
+        tk.Button(
+            card_btn_row,
+            text="📂  Папка",
+            bg="#1E293B", fg="#94A3B8",
+            font=FONTS["body"],
+            relief="flat", padx=8, pady=3, cursor="hand2",
+            command=self._open_folder,
+        ).pack(side="left", padx=(8, 0))
+
+        # Портфолио URL (ввод тьютором)
+        portfolio_lf = ttk.LabelFrame(right_outer, text="Ссылка на портфолио (только для тьютора)", padding=8)
+        portfolio_lf.pack(fill="x", pady=(0, 8))
+
+        portfolio_row = ttk.Frame(portfolio_lf)
+        portfolio_row.pack(fill="x")
+        self._portfolio_entry = ttk.Entry(portfolio_row)
+        self._portfolio_entry.pack(side="left", fill="x", expand=True)
+        ttk.Button(
+            portfolio_row, text="Сохранить",
+            command=self._save_portfolio,
+            style="Accent.TButton",
+        ).pack(side="left", padx=(6, 0))
+
+        # Комментарий тьютора
+        comment_lf = ttk.LabelFrame(right_outer, text="Комментарий тьютора", padding=8)
+        comment_lf.pack(fill="x", pady=(0, 8))
+
+        self._comment_box = tk.Text(
+            comment_lf, height=3, wrap="word",
+            font=FONTS["body"],
+            bg=COLORS["surface"], fg=COLORS["ink"],
+            relief="flat", borderwidth=0,
+            highlightthickness=1, highlightbackground=COLORS["border"],
             insertbackground=COLORS["ink"],
         )
         self._comment_box.pack(fill="x")
-        ttk.Button(comment_lf, text="Сохранить", command=self._save_comment).pack(
-            anchor="e", pady=(6, 0)
-        )
+        ttk.Button(comment_lf, text="Сохранить", command=self._save_comment).pack(anchor="e", pady=(6, 0))
 
         # История занятий
-        hist_lf = ttk.LabelFrame(right, text="История занятий", padding=8)
-        hist_lf.pack(fill="both", expand=True, pady=(0, 10))
+        hist_lf = ttk.LabelFrame(right_outer, text="История занятий", padding=8)
+        hist_lf.pack(fill="both", expand=True, pady=(0, 8))
 
         hist_cols = ("date", "topic", "grade")
         self._hist_tree = ttk.Treeview(
-            hist_lf, columns=hist_cols, show="headings", selectmode="browse", height=6
+            hist_lf, columns=hist_cols, show="headings", selectmode="browse", height=5
         )
         self._hist_tree.heading("date", text="Дата")
         self._hist_tree.heading("topic", text="Тема")
         self._hist_tree.heading("grade", text="Оценка")
-        self._hist_tree.column("date", width=130)
+        self._hist_tree.column("date", width=120)
         self._hist_tree.column("topic", width=160, stretch=True)
-        self._hist_tree.column("grade", width=80)
+        self._hist_tree.column("grade", width=80, anchor="center")
         self._hist_tree.pack(fill="both", expand=True)
         self._hist_tree.bind("<<TreeviewSelect>>", self._on_session_select)
         self._hist_session_ids: list[str] = []
 
-        # Оценка
-        grade_row = ttk.Frame(right)
-        grade_row.pack(fill="x", pady=(0, 6))
-        ttk.Label(grade_row, text="Оценка:").pack(side="left")
+        # Строка оценки
+        grade_card = ttk.LabelFrame(right_outer, text="Оценить занятие", padding=8)
+        grade_card.pack(fill="x")
+
+        grade_inner = ttk.Frame(grade_card)
+        grade_inner.pack(fill="x")
+
         self._grade_var = tk.IntVar(value=0)
+        stars_row = ttk.Frame(grade_inner)
+        stars_row.pack(side="left")
+        ttk.Label(stars_row, text="★", style="Muted.TLabel").pack(side="left")
         for v in range(1, 6):
             ttk.Radiobutton(
-                grade_row, text=str(v), variable=self._grade_var, value=v
+                stars_row, text=str(v),
+                variable=self._grade_var, value=v,
             ).pack(side="left", padx=2)
-        ttk.Label(grade_row, text="Заметка:").pack(side="left", padx=(10, 2))
-        self._grade_note = ttk.Entry(grade_row, width=16)
-        self._grade_note.pack(side="left")
-        ttk.Button(grade_row, text="Сохранить", command=self._save_grade, style="Accent.TButton").pack(
-            side="left", padx=(8, 0)
-        )
 
-        # Кнопка открыть папку
+        ttk.Label(grade_inner, text="Заметка:").pack(side="left", padx=(14, 4))
+        self._grade_note = ttk.Entry(grade_inner, width=18)
+        self._grade_note.pack(side="left")
         ttk.Button(
-            right, text="📂  Открыть папку сохранений", command=self._open_folder
-        ).pack(anchor="w")
+            grade_inner, text="Сохранить", command=self._save_grade, style="Accent.TButton"
+        ).pack(side="left", padx=(8, 0))
 
     # ── groups ──────────────────────────────────────────────────────────────
 
@@ -193,12 +252,6 @@ class RosterTab(ttk.Frame):
 
     def _on_groups(self, data: dict | None) -> None:
         self._groups = (data or {}).get("groups") or []
-        self._group_list.delete(0, "end")
-        for g in self._groups:
-            self._group_list.insert("end", f"  {g['name']}")
-            if g.get("module"):
-                self._group_list.insert("end", f"    ({g['module']})")
-        # Обновляем displayname с двух строк → один элемент через tags. Проще — перестроим:
         self._group_list.delete(0, "end")
         for g in self._groups:
             display = g["name"]
@@ -380,8 +433,18 @@ class RosterTab(ttk.Frame):
         self._card_name.configure(text=name)
         group = next((g for g in self._groups if g["id"] == student["group_id"]), None)
         group_name = group["name"] if group else "—"
-        age_str = f", {student['age']} лет" if student.get("age") else ""
-        self._card_meta.configure(text=f"Группа: {group_name}{age_str}")
+        age_str = f" · {student['age']} лет" if student.get("age") else ""
+        module_str = f" · {group['module']}" if group and group.get("module") else ""
+        self._card_meta.configure(text=f"Группа: {group_name}{module_str}{age_str}")
+
+        # Портфолио
+        portfolio_url = student.get("portfolio_url") or ""
+        self._portfolio_entry.delete(0, "end")
+        self._portfolio_entry.insert(0, portfolio_url)
+        if portfolio_url:
+            self._portfolio_btn.configure(state="normal", cursor="hand2")
+        else:
+            self._portfolio_btn.configure(state="disabled")
 
         # Комментарий
         self._comment_box.configure(state="normal")
@@ -413,8 +476,10 @@ class RosterTab(ttk.Frame):
                 pass
 
     def _clear_card(self) -> None:
-        self._card_name.configure(text="")
+        self._card_name.configure(text="Выбери ученика")
         self._card_meta.configure(text="")
+        self._portfolio_entry.delete(0, "end")
+        self._portfolio_btn.configure(state="disabled")
         self._comment_box.configure(state="normal")
         self._comment_box.delete("1.0", "end")
         for row in self._hist_tree.get_children():
@@ -424,12 +489,46 @@ class RosterTab(ttk.Frame):
         sel = self._hist_tree.selection()
         if not sel:
             return
-        # Прочитать существующую оценку для этого занятия
         row = self._hist_tree.item(sel[0])
         grade_str = (row["values"][2] if row["values"] else "") or ""
         count = grade_str.count("★")
         self._grade_var.set(count if count else 0)
         self._grade_note.delete(0, "end")
+
+    # ── actions ────────────────────────────────────────────────────────────
+
+    def _save_portfolio(self) -> None:
+        if not self._sel_student:
+            return
+        url = self._portfolio_entry.get().strip()
+        sid = self._sel_student["id"]
+
+        def worker():
+            self._api("POST", f"/roster/students/{sid}", {"portfolio_url": url})
+            self.after(0, self._on_portfolio_saved, url)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_portfolio_saved(self, url: str) -> None:
+        self._log(f"Портфолио сохранено: {url or '(очищено)'}")
+        if url:
+            self._portfolio_btn.configure(state="normal", cursor="hand2")
+        else:
+            self._portfolio_btn.configure(state="disabled")
+        # Обновляем локальный кэш
+        if self._sel_student:
+            self._sel_student["portfolio_url"] = url
+
+    def _open_portfolio(self) -> None:
+        url = self._portfolio_entry.get().strip()
+        if not url:
+            return
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+        try:
+            webbrowser.open(url)
+        except Exception as exc:
+            messagebox.showerror("Ошибка", f"Не удалось открыть ссылку:\n{exc}", parent=self)
 
     def _save_comment(self) -> None:
         if not self._sel_student:
@@ -439,7 +538,9 @@ class RosterTab(ttk.Frame):
 
         def worker():
             self._api("POST", f"/roster/students/{sid}", {"comment": comment})
-            self.after(0, lambda: self._log(f"Комментарий сохранён: {self._sel_student and self._sel_student.get('last_name')}"))
+            self.after(0, lambda: self._log(
+                f"Комментарий сохранён: {self._sel_student and self._sel_student.get('last_name')}"
+            ))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -462,7 +563,6 @@ class RosterTab(ttk.Frame):
                 "value": value,
                 "note": note,
             })
-            # Перезагружаем карточку
             self.after(0, self._load_student_card, sid)
 
         threading.Thread(target=worker, daemon=True).start()

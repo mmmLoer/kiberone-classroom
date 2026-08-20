@@ -19,13 +19,14 @@ CREATE TABLE IF NOT EXISTS groups (
 );
 
 CREATE TABLE IF NOT EXISTS students (
-    id          TEXT PRIMARY KEY,
-    last_name   TEXT NOT NULL,
-    first_name  TEXT NOT NULL,
-    age         INTEGER,
-    group_id    TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-    comment     TEXT NOT NULL DEFAULT '',
-    created_at  REAL NOT NULL
+    id              TEXT PRIMARY KEY,
+    last_name       TEXT NOT NULL,
+    first_name      TEXT NOT NULL,
+    age             INTEGER,
+    group_id        TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    comment         TEXT NOT NULL DEFAULT '',
+    portfolio_url   TEXT NOT NULL DEFAULT '',
+    created_at      REAL NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -51,6 +52,11 @@ CREATE INDEX IF NOT EXISTS idx_sessions_student ON sessions(student_id);
 CREATE INDEX IF NOT EXISTS idx_grades_student   ON grades(student_id);
 CREATE INDEX IF NOT EXISTS idx_grades_session   ON grades(session_id);
 """
+
+_MIGRATIONS = [
+    # v1.3.1: добавляем поле portfolio_url если его нет (ALTER TABLE не упадёт если уже есть)
+    "ALTER TABLE students ADD COLUMN portfolio_url TEXT NOT NULL DEFAULT ''",
+]
 
 _DB_NAME = ".classroom.db"
 
@@ -79,6 +85,13 @@ class ClassroomDB:
             conn = self._conn()
             conn.executescript(_SCHEMA)
             conn.commit()
+            # Применяем миграции (игнорируем ошибки дублирования столбцов)
+            for migration in _MIGRATIONS:
+                try:
+                    conn.execute(migration)
+                    conn.commit()
+                except sqlite3.OperationalError:
+                    pass
 
     def _exec(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
         with self._lock:
@@ -161,12 +174,13 @@ class ClassroomDB:
         group_id: str,
         age: int | None = None,
         comment: str = "",
+        portfolio_url: str = "",
     ) -> dict:
         sid = self._new_id()
         self._exec_commit(
-            "INSERT INTO students (id, last_name, first_name, age, group_id, comment, created_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (sid, last_name.strip(), first_name.strip(), age, group_id, comment.strip(), time.time()),
+            "INSERT INTO students (id, last_name, first_name, age, group_id, comment, portfolio_url, created_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (sid, last_name.strip(), first_name.strip(), age, group_id, comment.strip(), portfolio_url.strip(), time.time()),
         )
         return self.get_student(sid)  # type: ignore[return-value]
 
@@ -178,6 +192,7 @@ class ClassroomDB:
         age: int | None = ...,  # type: ignore[assignment]
         group_id: str | None = None,
         comment: str | None = None,
+        portfolio_url: str | None = None,
     ) -> dict | None:
         s = self.get_student(student_id)
         if not s:
@@ -187,9 +202,10 @@ class ClassroomDB:
         new_age   = s["age"] if age is ... else age  # type: ignore[comparison-overlap]
         new_group = group_id or s["group_id"]
         new_comment = (comment if comment is not None else s["comment"]).strip()
+        new_portfolio = (portfolio_url if portfolio_url is not None else s.get("portfolio_url", "")).strip()
         self._exec_commit(
-            "UPDATE students SET last_name=?, first_name=?, age=?, group_id=?, comment=? WHERE id=?",
-            (new_last, new_first, new_age, new_group, new_comment, student_id),
+            "UPDATE students SET last_name=?, first_name=?, age=?, group_id=?, comment=?, portfolio_url=? WHERE id=?",
+            (new_last, new_first, new_age, new_group, new_comment, new_portfolio, student_id),
         )
         return self.get_student(student_id)
 
