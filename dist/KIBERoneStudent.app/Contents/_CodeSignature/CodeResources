@@ -1310,7 +1310,7 @@
 		</data>
 		<key>Resources/base_library.zip</key>
 		<data>
-		8QzTKaTAqNCzzOFBBPObebqaXcE=
+		gw/z7lJ2vM+zhaIw0AGSc9137xk=
 		</data>
 		<key>Resources/tcl8/8.4/platform-1.0.19.tm</key>
 		<data>
@@ -1675,6 +1675,15 @@
 			<key>requirement</key>
 			<string>cdhash H"3ba05af011a8ebf019df5567ac712b5167680022"</string>
 		</dict>
+		<key>Frameworks/python3__dot__12/lib-dynload/_sqlite3.cpython-312-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			KISi6j+kFx4Iuu6TDB1EDX9x/CE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2884a2ea3fa4171e08baee930c1d440d7f71fc21"</string>
+		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_ssl.cpython-312-darwin.so</key>
 		<dict>
 			<key>cdhash</key>
@@ -1773,6 +1782,15 @@
 			</data>
 			<key>requirement</key>
 			<string>cdhash H"3273390c572e39fa4a401cfcdf9d75794b7b6926"</string>
+		</dict>
+		<key>Frameworks/python3__dot__12/lib-dynload/readline.cpython-312-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tloKR/bF+8SNAL5iCLkHKgonLDU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b65a0a47f6c5fbc48d00be6208b9072a0a272c35"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/resource.cpython-312-darwin.so</key>
 		<dict>
@@ -4120,7 +4138,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			fi4aFsCzRVI36M37nyI/wV4A2dtlm5EZSAQLYtP6vA4=
+			G60zEcTK5cQont9LpHh6EZGlrlpgsWre4gV0HmkM6FA=
 			</data>
 		</dict>
 		<key>Resources/libcrypto.3.dylib</key>

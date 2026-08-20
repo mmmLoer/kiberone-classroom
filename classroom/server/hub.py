@@ -729,6 +729,16 @@ class ClassroomServer:
                     grade = store.db.set_grade(student_id, session_id, value, note)
                     self._json(HTTPStatus.OK, {"ok": True, "grade": grade})
                     return
+                if route == "/roster/session/delete":
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    session_id = str(payload.get("session_id") or "").strip()
+                    if not session_id:
+                        self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "session_id required"})
+                        return
+                    ok = store.db.delete_session(session_id)
+                    log(f"Занятие удалено: {session_id}")
+                    self._json(HTTPStatus.OK, {"ok": ok})
+                    return
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
 
         return Handler

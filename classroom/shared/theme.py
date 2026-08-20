@@ -6,46 +6,63 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 
-# Светлая прохладная палитра: slate + teal (без purple / cream / terracotta)
+# ── Палитра ──────────────────────────────────────────────────────────────────
 COLORS = {
-    "bg": "#EEF2F6",
-    "surface": "#FFFFFF",
-    "surface_muted": "#E8EEF4",
-    "ink": "#152033",
-    "ink_muted": "#5B6B7C",
-    "border": "#C9D3DE",
-    "accent": "#0F766E",
-    "accent_hover": "#0D9488",
-    "accent_soft": "#CCFBF1",
-    "success": "#166534",
-    "success_soft": "#DCFCE7",
-    "warn": "#9A3412",
-    "warn_soft": "#FFEDD5",
-    "danger": "#991B1B",
-    "online": "#15803D",
-    "offline": "#94A3B8",
-    "log_bg": "#0F172A",
-    "log_fg": "#E2E8F0",
-    "header": "#0F172A",
-    "header_fg": "#F8FAFC",
+    # Фоны
+    "bg":            "#F0F4F8",   # Основной фон
+    "surface":       "#FFFFFF",   # Карточки / поля
+    "surface_muted": "#E4ECF4",   # Слегка затемнённые поверхности
+    # Текст
+    "ink":           "#0F1E2E",   # Основной текст (очень тёмный, читаемый везде)
+    "ink_muted":     "#4A5F72",   # Вспомогательный текст
+    "ink_subtle":    "#6B7E90",   # Placeholder, подписи к полям
+    # Рамки
+    "border":        "#C2CDD8",
+    # Акцент
+    "accent":        "#0F766E",
+    "accent_hover":  "#0D9488",
+    "accent_pressed":"#115E59",
+    "accent_soft":   "#CCFBF1",
+    # Статус
+    "success":       "#15803D",
+    "success_soft":  "#DCFCE7",
+    "warn":          "#B45309",
+    "warn_soft":     "#FEF3C7",
+    "danger":        "#B91C1C",
+    "danger_soft":   "#FEE2E2",
+    "online":        "#15803D",
+    "offline":       "#6B7E90",
+    # Лог-панель
+    "log_bg":        "#0C1524",
+    "log_fg":        "#CBD5E1",
+    # Хедер
+    "header":        "#0C1524",
+    "header_fg":     "#F1F5F9",
+    "header_sub":    "#7E9BB5",   # Подзаголовок хедера
 }
 
 if sys.platform == "darwin":
+    _FAMILY = "Helvetica Neue"
+    _MONO   = "Menlo"
     FONTS = {
-        "brand": ("Helvetica Neue", 18, "bold"),
-        "title": ("Helvetica Neue", 14, "bold"),
-        "body": ("Helvetica Neue", 12),
-        "label": ("Helvetica Neue", 12),
-        "mono": ("Menlo", 11),
-        "button": ("Helvetica Neue", 12, "bold"),
+        "brand":  (_FAMILY, 17, "bold"),
+        "title":  (_FAMILY, 13, "bold"),
+        "body":   (_FAMILY, 12),
+        "small":  (_FAMILY, 11),
+        "label":  (_FAMILY, 12),
+        "mono":   (_MONO,   11),
+        "button": (_FAMILY, 12, "bold"),
     }
 else:
+    _FAMILY = "Segoe UI"
+    _MONO   = "Cascadia Mono"
     FONTS = {
-        "brand": ("Segoe UI Semibold", 18),
-        "title": ("Segoe UI Semibold", 14),
-        "body": ("Segoe UI", 10),
-        "label": ("Segoe UI", 10),
-        "mono": ("Cascadia Mono", 9),
+        "brand":  ("Segoe UI Semibold", 16),
+        "title":  ("Segoe UI Semibold", 11),
+        "body":   (_FAMILY, 10),
+        "small":  (_FAMILY, 9),
+        "label":  (_FAMILY, 10),
+        "mono":   (_MONO,   9),
         "button": ("Segoe UI Semibold", 10),
     }
 
@@ -58,110 +75,248 @@ def apply_theme(root: tk.Misc) -> ttk.Style:
     except tk.TclError:
         pass
 
-    style.configure(".", background=COLORS["bg"], foreground=COLORS["ink"], font=FONTS["body"])
-    style.configure("TFrame", background=COLORS["bg"])
+    # ── Global defaults ────────────────────────────────────────────────────
+    style.configure(".",
+        background=COLORS["bg"],
+        foreground=COLORS["ink"],
+        font=FONTS["body"],
+    )
+
+    # ── Frames ─────────────────────────────────────────────────────────────
+    style.configure("TFrame",         background=COLORS["bg"])
     style.configure("Surface.TFrame", background=COLORS["surface"])
-    style.configure("Muted.TFrame", background=COLORS["surface_muted"])
-    style.configure("Header.TFrame", background=COLORS["header"])
+    style.configure("Muted.TFrame",   background=COLORS["surface_muted"])
+    style.configure("Header.TFrame",  background=COLORS["header"])
+    style.configure("Card.TFrame",    background=COLORS["surface"],
+                    relief="solid", borderwidth=1)
 
-    style.configure("TLabel", background=COLORS["bg"], foreground=COLORS["ink"], font=FONTS["body"])
-    style.configure("Surface.TLabel", background=COLORS["surface"], foreground=COLORS["ink"])
-    style.configure("Muted.TLabel", background=COLORS["bg"], foreground=COLORS["ink_muted"], font=FONTS["label"])
-    style.configure("Brand.TLabel", background=COLORS["header"], foreground=COLORS["header_fg"], font=FONTS["brand"])
-    style.configure("Header.TLabel", background=COLORS["header"], foreground="#94A3B8", font=FONTS["body"])
-    style.configure("Title.TLabel", background=COLORS["bg"], foreground=COLORS["ink"], font=FONTS["title"])
-    style.configure("StatusOk.TLabel", background=COLORS["bg"], foreground=COLORS["success"], font=FONTS["body"])
-    style.configure("StatusWarn.TLabel", background=COLORS["bg"], foreground=COLORS["warn"], font=FONTS["body"])
-    style.configure("Mono.TLabel", background=COLORS["bg"], foreground=COLORS["ink_muted"], font=FONTS["mono"])
+    # ── Labels ─────────────────────────────────────────────────────────────
+    style.configure("TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["ink"],
+        font=FONTS["body"],
+    )
+    style.configure("Surface.TLabel",
+        background=COLORS["surface"],
+        foreground=COLORS["ink"],
+        font=FONTS["body"],
+    )
+    style.configure("Muted.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["ink_muted"],
+        font=FONTS["small"],
+    )
+    style.configure("Subtle.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["ink_subtle"],
+        font=FONTS["small"],
+    )
+    style.configure("SurfaceMuted.TLabel",
+        background=COLORS["surface"],
+        foreground=COLORS["ink_muted"],
+        font=FONTS["small"],
+    )
+    style.configure("Brand.TLabel",
+        background=COLORS["header"],
+        foreground=COLORS["header_fg"],
+        font=FONTS["brand"],
+    )
+    style.configure("Header.TLabel",
+        background=COLORS["header"],
+        foreground=COLORS["header_sub"],
+        font=FONTS["body"],
+    )
+    style.configure("Title.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["ink"],
+        font=FONTS["title"],
+    )
+    style.configure("SurfaceTitle.TLabel",
+        background=COLORS["surface"],
+        foreground=COLORS["ink"],
+        font=FONTS["title"],
+    )
+    style.configure("StatusOk.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["success"],
+        font=FONTS["body"],
+    )
+    style.configure("StatusWarn.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["warn"],
+        font=FONTS["body"],
+    )
+    style.configure("Danger.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["danger"],
+        font=FONTS["body"],
+    )
+    style.configure("Mono.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["ink_muted"],
+        font=FONTS["mono"],
+    )
 
-    style.configure(
-        "TButton",
+    # ── Buttons ────────────────────────────────────────────────────────────
+    style.configure("TButton",
         background=COLORS["surface"],
         foreground=COLORS["ink"],
         font=FONTS["button"],
-        padding=(12, 8),
+        padding=(10, 6),
         borderwidth=1,
         relief="flat",
     )
-    style.map(
-        "TButton",
+    style.map("TButton",
         background=[("active", COLORS["surface_muted"]), ("pressed", COLORS["border"])],
         foreground=[("disabled", COLORS["offline"])],
     )
 
-    style.configure(
-        "Accent.TButton",
+    style.configure("Accent.TButton",
         background=COLORS["accent"],
         foreground="#FFFFFF",
         font=FONTS["button"],
-        padding=(14, 9),
+        padding=(12, 7),
         borderwidth=0,
     )
-    style.map(
-        "Accent.TButton",
-        background=[("active", COLORS["accent_hover"]), ("pressed", "#115E59")],
+    style.map("Accent.TButton",
+        background=[("active", COLORS["accent_hover"]), ("pressed", COLORS["accent_pressed"])],
         foreground=[("disabled", "#99F6E4")],
     )
 
-    style.configure(
-        "Ghost.TButton",
+    style.configure("Ghost.TButton",
         background=COLORS["bg"],
         foreground=COLORS["ink_muted"],
         font=FONTS["button"],
-        padding=(10, 7),
+        padding=(8, 5),
+        borderwidth=0,
+        relief="flat",
+    )
+    style.map("Ghost.TButton",
+        background=[("active", COLORS["surface_muted"]), ("pressed", COLORS["border"])],
+        foreground=[("active", COLORS["ink"])],
     )
 
-    style.configure(
-        "TEntry",
+    style.configure("Danger.TButton",
+        background=COLORS["danger_soft"],
+        foreground=COLORS["danger"],
+        font=FONTS["button"],
+        padding=(10, 6),
+        borderwidth=0,
+        relief="flat",
+    )
+    style.map("Danger.TButton",
+        background=[("active", "#FECACA"), ("pressed", "#FCA5A5")],
+        foreground=[("disabled", COLORS["offline"])],
+    )
+
+    # ── Entry ──────────────────────────────────────────────────────────────
+    style.configure("TEntry",
         fieldbackground=COLORS["surface"],
         foreground=COLORS["ink"],
         bordercolor=COLORS["border"],
-        lightcolor=COLORS["accent"],
+        lightcolor=COLORS["border"],
         darkcolor=COLORS["border"],
-        padding=6,
+        padding=(6, 5),
         insertcolor=COLORS["ink"],
+        font=FONTS["body"],
     )
-    style.map("TEntry", bordercolor=[("focus", COLORS["accent"])])
+    style.map("TEntry",
+        bordercolor=[("focus", COLORS["accent"])],
+        lightcolor=[("focus", COLORS["accent"])],
+    )
 
-    style.configure(
-        "TLabelframe",
+    # ── Combobox ───────────────────────────────────────────────────────────
+    style.configure("TCombobox",
+        fieldbackground=COLORS["surface"],
+        foreground=COLORS["ink"],
+        selectbackground=COLORS["accent_soft"],
+        selectforeground=COLORS["ink"],
+        font=FONTS["body"],
+        padding=(6, 5),
+        bordercolor=COLORS["border"],
+    )
+    style.map("TCombobox",
+        bordercolor=[("focus", COLORS["accent"])],
+        fieldbackground=[("readonly", COLORS["surface"])],
+    )
+
+    # ── LabelFrame ─────────────────────────────────────────────────────────
+    style.configure("TLabelframe",
         background=COLORS["surface"],
         foreground=COLORS["ink"],
         bordercolor=COLORS["border"],
         relief="solid",
         borderwidth=1,
     )
-    style.configure(
-        "TLabelframe.Label",
+    style.configure("TLabelframe.Label",
         background=COLORS["surface"],
-        foreground=COLORS["ink"],
-        font=FONTS["title"],
+        foreground=COLORS["ink_muted"],   # ← was ink (same as title, hard to distinguish)
+        font=FONTS["small"],
     )
 
-    style.configure(
-        "Treeview",
+    # ── Notebook ────────────────────────────────────────────────────────────
+    style.configure("TNotebook",
+        background=COLORS["bg"],
+        borderwidth=0,
+    )
+    style.configure("TNotebook.Tab",
+        background=COLORS["surface_muted"],
+        foreground=COLORS["ink_muted"],
+        font=FONTS["button"],
+        padding=(12, 6),
+    )
+    style.map("TNotebook.Tab",
+        background=[("selected", COLORS["surface"])],
+        foreground=[("selected", COLORS["ink"])],
+    )
+
+    # ── Treeview ────────────────────────────────────────────────────────────
+    style.configure("Treeview",
         background=COLORS["surface"],
         fieldbackground=COLORS["surface"],
         foreground=COLORS["ink"],
         bordercolor=COLORS["border"],
-        rowheight=28,
+        rowheight=26,
         font=FONTS["body"],
     )
-    style.configure(
-        "Treeview.Heading",
+    style.configure("Treeview.Heading",
         background=COLORS["surface_muted"],
         foreground=COLORS["ink_muted"],
-        font=FONTS["button"],
+        font=FONTS["small"],
         relief="flat",
+        padding=(4, 4),
     )
-    style.map(
-        "Treeview",
+    style.map("Treeview",
         background=[("selected", COLORS["accent_soft"])],
         foreground=[("selected", COLORS["ink"])],
     )
+    style.map("Treeview.Heading",
+        background=[("active", COLORS["border"])],
+        foreground=[("active", COLORS["ink"])],
+    )
 
+    # ── Radiobutton / Checkbutton ───────────────────────────────────────────
+    style.configure("TRadiobutton",
+        background=COLORS["surface"],
+        foreground=COLORS["ink"],
+        font=FONTS["body"],
+    )
+    style.map("TRadiobutton",
+        background=[("active", COLORS["surface_muted"])],
+    )
+
+    # ── Scrollbar ──────────────────────────────────────────────────────────
+    style.configure("TScrollbar",
+        background=COLORS["surface_muted"],
+        troughcolor=COLORS["bg"],
+        bordercolor=COLORS["bg"],
+        arrowcolor=COLORS["ink_muted"],
+    )
+
+    # ── Separator / Paned ──────────────────────────────────────────────────
     style.configure("TPanedwindow", background=COLORS["bg"])
-    style.configure("TSeparator", background=COLORS["border"])
+    style.configure("TSeparator",   background=COLORS["border"])
+
     return style
 
 
@@ -182,6 +337,8 @@ def make_log(parent: tk.Misc, height: int = 12) -> tk.Text:
         highlightthickness=1,
         highlightbackground=COLORS["border"],
         highlightcolor=COLORS["accent"],
+        selectbackground=COLORS["accent"],
+        selectforeground="#FFFFFF",
     )
     return box
 

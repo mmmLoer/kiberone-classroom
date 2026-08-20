@@ -240,6 +240,11 @@ class ClassroomDB:
             (student_id,),
         )
 
+    def delete_session(self, session_id: str) -> bool:
+        """Удаляет занятие и связанные оценки (каскад через FK)."""
+        cur = self._exec_commit("DELETE FROM sessions WHERE id = ?", (session_id,))
+        return cur.rowcount > 0
+
     # ── grades ────────────────────────────────────────────────────────────────
 
     def set_grade(

@@ -217,6 +217,16 @@ class RosterTab(ttk.Frame):
         self._hist_tree.bind("<<TreeviewSelect>>", self._on_session_select)
         self._hist_session_ids: list[str] = []
 
+        hist_btn_row = ttk.Frame(hist_lf)
+        hist_btn_row.pack(fill="x", pady=(6, 0))
+        ttk.Label(hist_btn_row, text="", style="SurfaceMuted.TLabel").pack(side="left", fill="x", expand=True)
+        ttk.Button(
+            hist_btn_row,
+            text="✕  Удалить занятие",
+            command=self._del_session,
+            style="Danger.TButton",
+        ).pack(side="right")
+
         # Строка оценки
         grade_card = ttk.LabelFrame(right_outer, text="Оценить занятие", padding=8)
         grade_card.pack(fill="x")
@@ -227,14 +237,14 @@ class RosterTab(ttk.Frame):
         self._grade_var = tk.IntVar(value=0)
         stars_row = ttk.Frame(grade_inner)
         stars_row.pack(side="left")
-        ttk.Label(stars_row, text="★", style="Muted.TLabel").pack(side="left")
+        ttk.Label(stars_row, text="Оценка:", style="TLabel").pack(side="left")
         for v in range(1, 6):
             ttk.Radiobutton(
                 stars_row, text=str(v),
                 variable=self._grade_var, value=v,
             ).pack(side="left", padx=2)
 
-        ttk.Label(grade_inner, text="Заметка:").pack(side="left", padx=(14, 4))
+        ttk.Label(grade_inner, text="Заметка:", style="TLabel").pack(side="left", padx=(14, 4))
         self._grade_note = ttk.Entry(grade_inner, width=18)
         self._grade_note.pack(side="left")
         ttk.Button(
@@ -529,6 +539,32 @@ class RosterTab(ttk.Frame):
             webbrowser.open(url)
         except Exception as exc:
             messagebox.showerror("Ошибка", f"Не удалось открыть ссылку:\n{exc}", parent=self)
+
+    def _del_session(self) -> None:
+        """Удаляет выбранное занятие из истории."""
+        sel = self._hist_tree.selection()
+        if not sel:
+            messagebox.showinfo("Выбери занятие", "Сначала выбери занятие в истории.", parent=self)
+            return
+        session_id = sel[0]
+        row = self._hist_tree.item(session_id)
+        vals = row.get("values") or []
+        date_str = vals[0] if vals else "?"
+        topic_str = vals[1] if len(vals) > 1 else "?"
+        if not messagebox.askyesno(
+            "Удалить занятие?",
+            f"Удалить занятие «{topic_str}» от {date_str}?\n\nВместе с ним удалятся все оценки за это занятие.",
+            parent=self,
+        ):
+            return
+        sid = self._sel_student["id"] if self._sel_student else None
+
+        def worker():
+            self._api("POST", "/roster/session/delete", {"session_id": session_id})
+            if sid:
+                self.after(0, self._load_student_card, sid)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _save_comment(self) -> None:
         if not self._sel_student:
