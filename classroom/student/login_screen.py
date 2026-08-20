@@ -12,7 +12,7 @@ from typing import Callable
 from ..shared.branding import place_header_logo
 from ..shared.constants import APP_NAME, DEFAULT_PORT, DEFAULT_TOKEN, app_dir
 from ..shared.http_client import request as http_request
-from ..shared.identity import get_pc_number
+from ..shared.identity import get_mac_id, get_pc_number
 from ..shared.theme import COLORS, FONTS, apply_theme
 
 _PREFS_FILE = app_dir() / "login_prefs.json"

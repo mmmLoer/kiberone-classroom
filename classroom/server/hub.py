@@ -137,8 +137,8 @@ class ClassroomStore:
             info.ip = ip
             info.last_seen = time.time()
             info.status = "online"
-            info.student_id = str(payload.get("student_id") or "").strip()
-            info.session_id = str(payload.get("session_id") or "").strip()
+            info.student_id = str(payload.get("student_id") or info.student_id or "").strip()
+            info.session_id = str(payload.get("session_id") or info.session_id or "").strip()
             info.extra = payload.get("extra", {})
             self.clients[client_id] = info
         if new_pc and new_pc != old_pc:
@@ -159,6 +159,8 @@ class ClassroomStore:
                         "status": "online" if online else "offline",
                         "last_seen": client.last_seen,
                         "watch_folder": client.watch_folder,
+                        "student_id": client.student_id,
+                        "session_id": client.session_id,
                     }
                 )
             result.sort(key=lambda item: (item["pc_number"] or "999", item["client_id"]))
@@ -642,6 +644,17 @@ class ClassroomServer:
                     pc_number = str(payload.get("pc_number") or "").strip()
                     client_id = self._client_id()
                     session = store.db.create_session(student_id, topic, pc_number, client_id)
+                    sess_id = session.get("id", "") if isinstance(session, dict) else ""
+                    if client_id:
+                        store.update_client(
+                            client_id,
+                            self.client_address[0],
+                            {
+                                "student_id": student_id,
+                                "session_id": sess_id,
+                                "pc_number": pc_number,
+                            },
+                        )
                     log(f"Чек-ин: {student_id} / {topic}")
                     self._json(HTTPStatus.OK, {"ok": True, "session": session})
                     return
