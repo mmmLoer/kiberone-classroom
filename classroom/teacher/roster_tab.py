@@ -346,13 +346,11 @@ class RosterTab(ttk.Frame):
     def _grant_achievement_dialog(self) -> None:
         if not self._sel_student: return
         res = self._api("GET", "/roster/achievements")
-        if not res or not res.get("ok"): return
+        if not res or not res.get("ok"): 
+            messagebox.showerror("Ошибка", f"Не удалось загрузить ачивки: {res}", parent=self)
+            return
         
         achs = res.get("achievements", [])
-        if not achs:
-            # Делаем отдельное модальное окно для предупреждения, чтобы 100% было поверх всего
-            messagebox.showinfo("Нет ачивок", "Сначала создайте хотя бы одну ачивку в окне '🏆 Ачивки' (в заголовке группы).", parent=self)
-            return
             
         top = tk.Toplevel(self)
         top.title("Выдать ачивку")
@@ -361,6 +359,12 @@ class RosterTab(ttk.Frame):
         top.grab_set()
         top.focus_set()
         
+        if not achs:
+            lbl = ttk.Label(top, text="У вас пока нет созданных ачивок!\n\nСначала создайте хотя бы одну ачивку\nв окне '🏆 Ачивки' (в заголовке списка групп).", justify="center", font=FONTS["body"])
+            lbl.pack(expand=True)
+            ttk.Button(top, text="Понятно", command=top.destroy).pack(pady=16)
+            return
+
         listbox = tk.Listbox(top, font=FONTS["body"])
         listbox.pack(fill="both", expand=True, padx=8, pady=8)
         
