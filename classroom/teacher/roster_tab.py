@@ -344,42 +344,55 @@ class RosterTab(ttk.Frame):
             tree.insert("", "end", values=(dt, delta_str, h["reason"]))
 
     def _grant_achievement_dialog(self) -> None:
-        if not self._sel_student: return
+        self._log("Открытие диалога выдачи ачивки...")
+        if not self._sel_student: 
+            self._log("Ошибка: ученик не выбран!")
+            return
+            
         res = self._api("GET", "/roster/achievements")
         if not res or not res.get("ok"): 
-            messagebox.showerror("Ошибка", f"Не удалось загрузить ачивки: {res}", parent=self.winfo_toplevel())
+            self._log(f"Ошибка загрузки ачивок: {res}")
             return
         
         achs = res.get("achievements", [])
+        self._log(f"Загружено ачивок: {len(achs)}")
             
-        top = tk.Toplevel(self.winfo_toplevel())
-        top.title("Выдать ачивку")
-        top.geometry("400x300")
-        top.transient(self.winfo_toplevel())
-        top.grab_set()
-        top.focus_set()
-        
-        if not achs:
-            lbl = ttk.Label(top, text="У вас пока нет созданных ачивок!\n\nСначала создайте хотя бы одну ачивку\nв окне '🏆 Ачивки' (в заголовке списка групп).", justify="center", font=FONTS["body"])
-            lbl.pack(expand=True)
-            ttk.Button(top, text="Понятно", command=top.destroy).pack(pady=16)
-            return
+        try:
+            top = tk.Toplevel(self.winfo_toplevel())
+            top.title("Выдать ачивку")
+            top.geometry("400x300")
+            
+            # Жёсткий способ вывести окно поверх всех (на маке transient часто глючит)
+            top.attributes('-topmost', True)
+            top.lift()
+            top.focus_force()
+            
+            if not achs:
+                lbl = ttk.Label(top, text="У вас пока нет созданных ачивок!\n\nСначала создайте хотя бы одну ачивку\nв окне '🏆 Ачивки' (в заголовке списка групп).", justify="center", font=FONTS["body"])
+                lbl.pack(expand=True)
+                ttk.Button(top, text="Понятно", command=top.destroy).pack(pady=16)
+                self._log("Показано окно 'Нет ачивок'.")
+                return
 
-        listbox = tk.Listbox(top, font=FONTS["body"])
-        listbox.pack(fill="both", expand=True, padx=8, pady=8)
-        
-        for a in achs:
-            listbox.insert("end", f"{a.get('icon', '')} {a.get('title', '')} (+{a.get('xp_reward', 0)} XP)")
+            listbox = tk.Listbox(top, font=FONTS["body"])
+            listbox.pack(fill="both", expand=True, padx=8, pady=8)
             
-        def _grant():
-            sel = listbox.curselection()
-            if not sel: return
-            ach_id = achs[sel[0]]["id"]
-            self._api("POST", f"/roster/student/{self._sel_student['id']}/achievements", {"achievement_id": ach_id})
-            top.destroy()
-            self._load_student_card(self._sel_student["id"])
-            
-        ttk.Button(top, text="Выдать", command=_grant, style="Accent.TButton").pack(pady=8)
+            for a in achs:
+                listbox.insert("end", f"{a.get('icon', '')} {a.get('title', '')} (+{a.get('xp_reward', 0)} XP)")
+                
+            def _grant():
+                sel = listbox.curselection()
+                if not sel: return
+                ach_id = achs[sel[0]]["id"]
+                self._log(f"Выдаём ачивку {ach_id} ученику...")
+                self._api("POST", f"/roster/student/{self._sel_student['id']}/achievements", {"achievement_id": ach_id})
+                top.destroy()
+                self._load_student_card(self._sel_student["id"])
+                
+            ttk.Button(top, text="Выдать", command=_grant, style="Accent.TButton").pack(pady=8)
+            self._log("Диалог успешно отрисован.")
+        except Exception as e:
+            self._log(f"КРИТИЧЕСКАЯ ОШИБКА интерфейса: {e}")
 
     def _revoke_achievement(self) -> None:
         if not self._sel_student: return
