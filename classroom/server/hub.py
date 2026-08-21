@@ -719,14 +719,14 @@ class ClassroomServer:
                     session = store.db.create_session(student_id, topic, pc_number, client_id)
                     sess_id = session.get("id", "") if isinstance(session, dict) else ""
                     if client_id:
-                        store.update_client(
+                        store.register_heartbeat(
                             client_id,
-                            self.client_address[0],
                             {
                                 "student_id": student_id,
                                 "session_id": sess_id,
                                 "pc_number": pc_number,
                             },
+                            self.client_address[0],
                         )
                     log(f"Чек-ин: {student_id} / {topic}")
                     self._json(HTTPStatus.OK, {"ok": True, "session": session})
