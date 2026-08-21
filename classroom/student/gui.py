@@ -435,7 +435,7 @@ class StudentApp(tk.Tk):
                     row += 1
 
     def show_notification(self, info: dict) -> None:
-        """Всплывашка в стиле Steam (снизу справа)."""
+        """Всплывашка в стиле Steam (снизу справа) с плавной анимацией."""
         title = info.get("title", "")
         xp = info.get("xp", 0)
         icon = info.get("icon", "🏆")
@@ -443,16 +443,18 @@ class StudentApp(tk.Tk):
         popup = tk.Toplevel(self)
         popup.overrideredirect(True)
         popup.attributes("-topmost", True)
+        popup.attributes("-alpha", 0.0) # Начальная прозрачность
         popup.configure(bg="#1E293B", highlightthickness=1, highlightbackground="#334155")
         popup.geometry("300x80")
         
         # Размещаем в правом нижнем углу экрана
         sw = popup.winfo_screenwidth()
         sh = popup.winfo_screenheight()
-        # Ставим чуть выше панели задач (около 50px)
-        x = sw - 320
-        y = sh - 140
-        popup.geometry(f"+{x}+{y}")
+        target_x = sw - 320
+        target_y = sh - 140
+        start_y = sh # Начинаем за пределами экрана снизу
+        
+        popup.geometry(f"+{target_x}+{start_y}")
         
         # Внутренний контейнер
         frame = tk.Frame(popup, bg="#1E293B", padx=16, pady=16)
@@ -469,13 +471,50 @@ class StudentApp(tk.Tk):
         if xp:
             tk.Label(right, text=f"+{xp} XP", font=("Segoe UI", 9), bg="#1E293B", fg="#38BDF8").pack(anchor="w")
             
-        # Анимация исчезновения через 5 секунд
-        def close():
-            try:
-                popup.destroy()
-            except tk.TclError:
-                pass
-        popup.after(5000, close)
+        # Анимация появления
+        def animate_in(step=0):
+            if not popup.winfo_exists(): return
+            steps = 20
+            if step <= steps:
+                # Easing: вычисляем прогресс
+                progress = step / steps
+                alpha = progress
+                current_y = start_y - int((start_y - target_y) * progress)
+                
+                try:
+                    popup.attributes("-alpha", alpha)
+                    popup.geometry(f"+{target_x}+{current_y}")
+                    popup.after(16, animate_in, step + 1)
+                except tk.TclError:
+                    pass
+            else:
+                popup.after(5000, start_animate_out)
+
+        def start_animate_out():
+            animate_out(0)
+
+        # Анимация исчезновения
+        def animate_out(step=0):
+            if not popup.winfo_exists(): return
+            steps = 20
+            if step <= steps:
+                progress = step / steps
+                alpha = 1.0 - progress
+                current_y = target_y + int((start_y - target_y) * progress)
+                
+                try:
+                    popup.attributes("-alpha", alpha)
+                    popup.geometry(f"+{target_x}+{current_y}")
+                    popup.after(16, animate_out, step + 1)
+                except tk.TclError:
+                    pass
+            else:
+                try:
+                    popup.destroy()
+                except tk.TclError:
+                    pass
+
+        animate_in()
 
 
     def lock_screen(self) -> None:
