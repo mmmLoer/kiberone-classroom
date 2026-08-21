@@ -100,10 +100,12 @@ class StudentApp(tk.Tk):
     def _on_auto_login_result(self, result: tuple | None, host: str) -> None:
         if result:
             student_id, session_id, student_display = result
-            self.log(f"Автовход: {student_display}")
+            self.log(f"✅ Автовход: {student_display}")
             self._on_student_login(student_id, session_id, student_display)
         else:
-            # Нет сохранённого сеанса — показываем обычный экран входа
+            # Нет сохранённого сеанса или тьютор ответил ошибкой — показываем экран входа
+            self.log("Последний сеанс не найден, нужен вход.")
+            self.status_var.set(f"Найден: {host}")
             StudentLoginScreen(
                 self,
                 teacher_host=host,

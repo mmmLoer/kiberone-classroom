@@ -80,7 +80,12 @@ def try_auto_login(
             session = result.get("session") or {}
             session_id = session.get("id", "")
             return student_id, session_id, student_display
+        # Сервер ответил, но с ошибкой (например студент удалён) — сбрасываем prefs
+        if isinstance(result, dict) and not result.get("ok"):
+            prefs.pop("student_id", None)
+            _save_prefs(prefs)
     except Exception:
+        # Тьютор недоступен — не сбрасываем prefs, попробуем при следующем запуске
         pass
     return None
 

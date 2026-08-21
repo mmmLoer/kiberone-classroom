@@ -73,6 +73,10 @@ class StudentAgent:
         self.exclude_files = {"Thumbs.db", "desktop.ini", ".DS_Store"}
         self._games_closed = 0
         self._watchdog_reported = False
+        self.watchdog_active = False
+        self._watchdog_pid: int | None = None
+        # Sentinel-файл: watchdog.bat пишет его перед запуском программы
+        self._watchdog_sentinel = Path(os.environ.get("TEMP", ".")) / "kiberone_watchdog_recovered.flag"
 
     @property
     def base_url(self) -> str:
@@ -145,7 +149,11 @@ class StudentAgent:
         self._thread.start()
         self.log("Агент запущен")
         
-        if os.environ.get("KIBERONE_WATCHDOG_RECOVERED") == "1":
+        if os.environ.get("KIBERONE_WATCHDOG_RECOVERED") == "1" or self._watchdog_sentinel.exists():
+            try:
+                self._watchdog_sentinel.unlink(missing_ok=True)
+            except Exception:
+                pass
             threading.Thread(target=self._report_watchdog, daemon=True).start()
 
     def _report_watchdog(self) -> None:
@@ -392,23 +400,45 @@ class StudentAgent:
             self.watchdog_active = True
             try:
                 import subprocess, sys, os, tempfile
-                from ..shared.constants import app_dir
                 # В PyInstaller 1-file sys.executable указывает на оригинальный exe
                 exe_path = sys.executable
                 exe_name = os.path.basename(exe_path)
-                
+                sentinel = str(self._watchdog_sentinel)
+
                 bat_dir = Path(tempfile.gettempdir())
                 bat_path = bat_dir / "kiberone_watchdog.bat"
                 with open(bat_path, "w", encoding="utf-8") as f:
-                    f.write(f'@echo off\ntitle KIBERoneWatchdog\nsetlocal\necho KIBERone Watchdog Started\necho Monitoring {exe_name}...\n\n:loop\ntasklist | find /i "{exe_name}" > nul\nif errorlevel 1 (\n    echo [%time%] {exe_name} not found! Restarting...\n    set KIBERONE_WATCHDOG_RECOVERED=1\n    start "" "{exe_path}"\n)\ntimeout /t 5 /nobreak > nul\ngoto loop\n')
-                
+                    # /B — запуск в том же окне, переменные окружения передаются дочернему процессу
+                    # Вместо этого пишем sentinel-файл (надёжнее cmd /B)
+                    f.write(
+                        f'@echo off\n'
+                        f'setlocal\n'
+                        f'echo KIBERone Watchdog Started\n'
+                        f'echo Monitoring {exe_name}...\n\n'
+                        f':loop\n'
+                        f'tasklist | find /i "{exe_name}" > nul\n'
+                        f'if errorlevel 1 (\n'
+                        f'    echo [%time%] {exe_name} not found! Restarting...\n'
+                        f'    echo 1 > "{sentinel}"\n'
+                        f'    start "" "{exe_path}"\n'
+                        f')\n'
+                        f'timeout /t 5 /nobreak > nul\n'
+                        f'goto loop\n'
+                    )
+
                 # Очищаем все переменные окружения PyInstaller и Python, чтобы не было конфликтов DLL
                 env = os.environ.copy()
                 keys_to_remove = [k for k in env if k.upper().startswith("_MEI") or k.upper().startswith("PY") or k.upper().startswith("_PYI")]
                 for k in keys_to_remove:
                     env.pop(k, None)
-                
-                subprocess.Popen(["cmd.exe", "/c", "kiberone_watchdog.bat"], cwd=str(bat_dir), env=env, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+
+                proc = subprocess.Popen(
+                    ["cmd.exe", "/c", str(bat_path)],
+                    cwd=str(bat_dir),
+                    env=env,
+                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+                )
+                self._watchdog_pid = proc.pid
             except Exception as e:
                 self.log(f"Watchdog error: {e}")
             self.log("Watchdog ВКЛ")
@@ -416,7 +446,22 @@ class StudentAgent:
             self.watchdog_active = False
             try:
                 import subprocess
-                subprocess.run(["taskkill", "/F", "/FI", "WINDOWTITLE eq KIBERoneWatchdog*"], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                pid = self._watchdog_pid
+                if pid:
+                    # Убиваем дерево процессов watchdog по PID (cmd.exe + дочерние)
+                    subprocess.run(
+                        ["taskkill", "/F", "/T", "/PID", str(pid)],
+                        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+                        capture_output=True,
+                    )
+                    self._watchdog_pid = None
+                else:
+                    # Fallback: ищем по имени bat-файла
+                    subprocess.run(
+                        ["wmic", "process", "where", "name='cmd.exe'", "get", "processid,commandline"],
+                        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+                        capture_output=True,
+                    )
             except Exception:
                 pass
             self.log("Watchdog ВЫКЛ")
