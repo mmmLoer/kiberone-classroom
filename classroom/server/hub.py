@@ -677,7 +677,28 @@ class ClassroomServer:
                         payload = json.loads(body.decode("utf-8") or "{}")
                         delta = int(payload.get("delta") or 0)
                         st = store.db.update_student_currency(sid, delta)
+                        
+                        # Check for Mr 67 secret achievement
+                        if st and st.get("kiberons") == 67:
+                            self._check_and_grant_secret(sid, "sys_mr_67")
+                            
                         self._json(HTTPStatus.OK, {"ok": True, "student": st})
+                        return
+                    elif route.endswith("/trigger_event"):
+                        sid = route[len("/roster/student/"):-len("/trigger_event")]
+                        payload = json.loads(body.decode("utf-8") or "{}")
+                        event = payload.get("event")
+                        
+                        ach_id = None
+                        if event == "games_addict":
+                            ach_id = "sys_game_addict"
+                        elif event == "watchdog_survivor":
+                            ach_id = "sys_watchdog_survivor"
+                            
+                        if ach_id:
+                            self._check_and_grant_secret(sid, ach_id)
+                            
+                        self._json(HTTPStatus.OK, {"ok": True})
                         return
                     # Fallthrough для других /roster/student/... (если есть)
 
@@ -818,6 +839,23 @@ class ClassroomServer:
                     return
 
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
+
+
+            def _check_and_grant_secret(self, sid: str, ach_id: str) -> None:
+                # Check if already granted
+                existing = store.db.get_student_achievements(sid)
+                if any(a.get("id") == ach_id for a in existing):
+                    return
+                # Grant achievement
+                granted = store.db.grant_achievement(sid, ach_id)
+                if granted:
+                    for c in store.list_clients():
+                        if c.get("student_id") == sid and c.get("status") == "online":
+                            store.enqueue([c["client_id"]], "notification", {
+                                "title": f"Секретное достижение: {granted.get('title', '')}",
+                                "xp": granted.get("xp_reward", 0),
+                                "icon": granted.get("icon", ""),
+                            })
 
 
         return Handler

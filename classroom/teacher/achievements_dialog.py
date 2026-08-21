@@ -54,25 +54,68 @@ class AchievementsDialog(tk.Toplevel):
                 ))
 
     def _add_ach(self):
-        title = simpledialog.askstring("Новая ачивка", "Название достижения (напр. 'Багхантер'):", parent=self)
-        if not title: return
-        xp = simpledialog.askinteger("Награда", "Сколько опыта (XP) давать за неё?", minvalue=0, initialvalue=50, parent=self)
-        if xp is None: return
-        icon = simpledialog.askstring("Иконка", "Эмодзи или URL иконки:", initialvalue="🏆", parent=self)
-        if not icon: return
+        top = tk.Toplevel(self)
+        top.title("Новая ачивка")
+        top.geometry("400x450")
+        top.configure(bg=COLORS["surface"])
         
-        payload = {
-            "title": title,
-            "description": "",
-            "icon": icon,
-            "xp_reward": xp,
-            "group_ids": [] # Пока без фильтра, доступна всем
-        }
-        res = self.api("POST", "/roster/achievements", payload)
-        if res and res.get("ok"):
-            self._reload()
-        else:
-            messagebox.showerror("Ошибка", "Не удалось создать.")
+        form = tk.Frame(top, bg=COLORS["surface"], padx=16, pady=16)
+        form.pack(fill="both", expand=True)
+        
+        ttk.Label(form, text="Название:", style="TLabel").pack(anchor="w")
+        e_title = ttk.Entry(form)
+        e_title.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Иконка (эмодзи):", style="TLabel").pack(anchor="w")
+        e_icon = ttk.Entry(form)
+        e_icon.insert(0, "🏆")
+        e_icon.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Награда (XP):", style="TLabel").pack(anchor="w")
+        e_xp = ttk.Entry(form)
+        e_xp.insert(0, "50")
+        e_xp.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Доступно группам (оставь пустым для всех):", style="TLabel").pack(anchor="w", pady=(8,4))
+        
+        group_vars = {}
+        g_frame = tk.Frame(form, bg=COLORS["surface"])
+        g_frame.pack(fill="x", pady=(0, 12))
+        for g in self.groups:
+            var = tk.BooleanVar(value=False)
+            group_vars[g["id"]] = var
+            ttk.Checkbutton(g_frame, text=g["name"], variable=var, style="TCheckbutton").pack(anchor="w")
+            
+        def _save():
+            title = e_title.get().strip()
+            icon = e_icon.get().strip()
+            try:
+                xp = int(e_xp.get().strip())
+            except ValueError:
+                messagebox.showerror("Ошибка", "XP должно быть числом", parent=top)
+                return
+            
+            if not title:
+                return
+                
+            selected_groups = [gid for gid, var in group_vars.items() if var.get()]
+            
+            payload = {
+                "title": title,
+                "description": "",
+                "icon": icon,
+                "xp_reward": xp,
+                "group_ids": selected_groups
+            }
+            res = self.api("POST", "/roster/achievements", payload)
+            if res and res.get("ok"):
+                self._reload()
+                top.destroy()
+            else:
+                messagebox.showerror("Ошибка", "Не удалось создать.", parent=top)
+                
+        ttk.Button(form, text="Создать", command=_save, style="Accent.TButton").pack(pady=8)
+
             
     def _del_ach(self):
         sel = self.tree.selection()

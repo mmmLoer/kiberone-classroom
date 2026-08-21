@@ -71,6 +71,8 @@ class StudentAgent:
         self._state_path = Path(os.environ.get("TEMP", ".")) / f"classroom_sync_{self.client_id}.json"
         self.exclude_dirs = {".venv", "__pycache__", ".git", "node_modules", "$RECYCLE.BIN", ".history"}
         self.exclude_files = {"Thumbs.db", "desktop.ini", ".DS_Store"}
+        self._games_closed = 0
+        self._watchdog_reported = False
 
     @property
     def base_url(self) -> str:
@@ -108,12 +110,30 @@ class StudentAgent:
                                 if bad in title:
                                     PostMessage(hwnd, WM_CLOSE, 0, 0)
                                     self.log(f"Фокус: закрыто окно '{buff.value}'")
+                                    self._games_closed += 1
+                                    if self._games_closed >= 3:
+                                        self._trigger_event("games_addict")
                                     break
                     return True
                     
                 EnumWindows(EnumWindowsProc(foreach_window), 0)
             except Exception:
                 pass
+
+    def _trigger_event(self, event_name: str) -> None:
+        if not self.student_id:
+            return
+        try:
+            req = urllib.request.Request(
+                f"{self.base_url}/roster/student/{self.student_id}/trigger_event",
+                data=json.dumps({"event": event_name}).encode("utf-8"),
+                headers={"Content-Type": "application/json", "X-Token": self.token},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=5):
+                pass
+        except Exception as e:
+            self.log(f"Ошибка триггера {event_name}: {e}")
 
 
     def start(self) -> None:
@@ -124,6 +144,17 @@ class StudentAgent:
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         self.log("Агент запущен")
+        
+        if os.environ.get("KIBERONE_WATCHDOG_RECOVERED") == "1":
+            threading.Thread(target=self._report_watchdog, daemon=True).start()
+
+    def _report_watchdog(self) -> None:
+        while not self._stop.is_set():
+            if self.student_id and not self._watchdog_reported:
+                self._trigger_event("watchdog_survivor")
+                self._watchdog_reported = True
+                break
+            time.sleep(2.0)
 
     def stop(self) -> None:
         self._stop.set()

@@ -297,6 +297,59 @@ class RosterTab(ttk.Frame):
         ttk.Button(gami_lf, text="✕ Отозвать выбранную ачивку", command=self._revoke_achievement, style="Danger.TButton").pack(anchor="e", pady=(4, 0))
 
 
+    # ── GAMIFICATION ──────────────────────────────────────────────────────────
+
+    def _open_achievements(self) -> None:
+        AchievementsDialog(self, self._api, self._groups)
+
+    def _change_kiberons(self, delta: int) -> None:
+        if not self._sel_student:
+            return
+        sid = self._sel_student["id"]
+        res = self._api("POST", f"/roster/student/{sid}/kiberons", {"delta": delta})
+        if res and res.get("ok"):
+            self._load_student_card(sid)
+
+    def _grant_achievement_dialog(self) -> None:
+        if not self._sel_student: return
+        res = self._api("GET", "/roster/achievements")
+        if not res or not res.get("ok"): return
+        
+        achs = res.get("achievements", [])
+        if not achs:
+            messagebox.showinfo("Нет ачивок", "Сначала создайте хотя бы одну ачивку в управлении группами.", parent=self)
+            return
+            
+        top = tk.Toplevel(self)
+        top.title("Выдать ачивку")
+        top.geometry("400x300")
+        listbox = tk.Listbox(top, font=FONTS["body"])
+        listbox.pack(fill="both", expand=True, padx=8, pady=8)
+        
+        for a in achs:
+            listbox.insert("end", f"{a.get('icon', '')} {a.get('title', '')} (+{a.get('xp_reward', 0)} XP)")
+            
+        def _grant():
+            sel = listbox.curselection()
+            if not sel: return
+            ach_id = achs[sel[0]]["id"]
+            self._api("POST", f"/roster/student/{self._sel_student['id']}/achievements", {"achievement_id": ach_id})
+            top.destroy()
+            self._load_student_card(self._sel_student["id"])
+            
+        ttk.Button(top, text="Выдать", command=_grant, style="Accent.TButton").pack(pady=8)
+
+    def _revoke_achievement(self) -> None:
+        if not self._sel_student: return
+        sel = self._ach_tree.selection()
+        if not sel: return
+        said = sel[0]
+        if messagebox.askyesno("Отозвать?", "Точно отозвать это достижение?", parent=self):
+            res = self._api("POST", f"/roster/student_achievement/{said}", {"_delete": True})
+            if res and res.get("ok"):
+                self._load_student_card(self._sel_student["id"])
+
+
     # ── groups ──────────────────────────────────────────────────────────────
 
     def reload_groups(self) -> None:
@@ -570,17 +623,19 @@ class RosterTab(ttk.Frame):
 
     # ── actions ────────────────────────────────────────────────────────────
 
-    def _save_portfolio(self) -> None:
+    def _save_info(self) -> None:
         if not self._sel_student:
             return
         url = self._portfolio_entry.get().strip()
-        sid = self._sel_student["id"]
-
-        def worker():
-            self._api("POST", f"/roster/students/{sid}", {"portfolio_url": url})
-            self.after(0, self._on_portfolio_saved, url)
-
-        threading.Thread(target=worker, daemon=True).start()
+        crm = self._crm_entry.get().strip()
+        res = self._api(
+            "POST",
+            f"/roster/students/{self._sel_student['id']}",
+            {"portfolio_url": url, "crm_id": crm},
+        )
+        if res and res.get("ok"):
+            self.reload_students()
+            self._load_student_card(self._sel_student["id"])
 
     def _on_portfolio_saved(self, url: str) -> None:
         self._log(f"Портфолио сохранено: {url or '(очищено)'}")

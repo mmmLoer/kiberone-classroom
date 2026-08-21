@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS achievements (
     description TEXT NOT NULL DEFAULT '',
     icon        TEXT NOT NULL DEFAULT '',
     xp_reward   INTEGER NOT NULL DEFAULT 0,
+    is_secret   BOOLEAN NOT NULL DEFAULT 0,
     created_at  REAL NOT NULL
 );
 
@@ -88,6 +89,7 @@ _MIGRATIONS = [
     "ALTER TABLE students ADD COLUMN kiberons INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE students ADD COLUMN xp INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE students ADD COLUMN level INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE achievements ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT 0",
 ]
 
 
@@ -125,6 +127,24 @@ class ClassroomDB:
                     conn.commit()
                 except sqlite3.OperationalError:
                     pass
+            self._ensure_secret_achievements(conn)
+
+    def _ensure_secret_achievements(self, conn: sqlite3.Connection) -> None:
+        secrets = [
+            ("sys_game_addict", "Игроман", "Был замечен с играми", "🎮", 10, 1),
+            ("sys_watchdog_survivor", "Неудержимый", "Пытался закрыть программу, но скрипт ее включил", "🛡️", 50, 1),
+            ("sys_mr_67", "Мистер 67", "Достиг баланса в 67 киберонов", "😎", 67, 1)
+        ]
+        for aid, title, desc, icon, xp, is_sec in secrets:
+            try:
+                conn.execute(
+                    "INSERT INTO achievements (id, title, description, icon, xp_reward, is_secret, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (aid, title, desc, icon, xp, is_sec, time.time())
+                )
+            except sqlite3.IntegrityError:
+                pass
+        conn.commit()
 
     def _exec(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
         with self._lock:
@@ -346,11 +366,11 @@ class ClassroomDB:
             a["group_ids"] = [g["group_id"] for g in groups]
         return achievements
 
-    def create_achievement(self, title: str, description: str, icon: str, xp_reward: int, group_ids: list[str]) -> dict:
+    def create_achievement(self, title: str, description: str = "", icon: str = "", xp_reward: int = 0, group_ids: list[str] = [], is_secret: bool = False) -> dict:
         aid = self._new_id()
         self._exec_commit(
-            "INSERT INTO achievements (id, title, description, icon, xp_reward, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (aid, title.strip(), description.strip(), icon.strip(), xp_reward, time.time())
+            "INSERT INTO achievements (id, title, description, icon, xp_reward, is_secret, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (aid, title.strip(), description.strip(), icon.strip(), xp_reward, is_secret, time.time())
         )
         for gid in group_ids:
             self._exec_commit("INSERT INTO group_achievements (group_id, achievement_id) VALUES (?, ?)", (gid, aid))

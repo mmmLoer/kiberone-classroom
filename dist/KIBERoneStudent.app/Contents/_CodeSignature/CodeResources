@@ -1310,7 +1310,7 @@
 		</data>
 		<key>Resources/base_library.zip</key>
 		<data>
-		gw/z7lJ2vM+zhaIw0AGSc9137xk=
+		V1UTsmz5SlznGl9BsYtpy+ZHnHY=
 		</data>
 		<key>Resources/tcl8/8.4/platform-1.0.19.tm</key>
 		<data>
@@ -1620,6 +1620,15 @@
 			</data>
 			<key>requirement</key>
 			<string>cdhash H"c7ce3174c99620b6c4b9f988a1c27d52235c5668"</string>
+		</dict>
+		<key>Frameworks/python3__dot__12/lib-dynload/_queue.cpython-312-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			nzolvDKvW2XcmBZvV2fUxwlv0eU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9f3a25bc32af5b65dc98166f5767d4c7096fd1e5"</string>
 		</dict>
 		<key>Frameworks/python3__dot__12/lib-dynload/_random.cpython-312-darwin.so</key>
 		<dict>
@@ -4138,7 +4147,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			G60zEcTK5cQont9LpHh6EZGlrlpgsWre4gV0HmkM6FA=
+			Ic1ReNlkGTL2DyjnErEzADH6CDO5Fn1FembmPFk7VDg=
 			</data>
 		</dict>
 		<key>Resources/libcrypto.3.dylib</key>
