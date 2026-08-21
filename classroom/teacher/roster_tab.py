@@ -347,15 +347,15 @@ class RosterTab(ttk.Frame):
         if not self._sel_student: return
         res = self._api("GET", "/roster/achievements")
         if not res or not res.get("ok"): 
-            messagebox.showerror("Ошибка", f"Не удалось загрузить ачивки: {res}", parent=self)
+            messagebox.showerror("Ошибка", f"Не удалось загрузить ачивки: {res}", parent=self.winfo_toplevel())
             return
         
         achs = res.get("achievements", [])
             
-        top = tk.Toplevel(self)
+        top = tk.Toplevel(self.winfo_toplevel())
         top.title("Выдать ачивку")
         top.geometry("400x300")
-        top.transient(self)
+        top.transient(self.winfo_toplevel())
         top.grab_set()
         top.focus_set()
         
