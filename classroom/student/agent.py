@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ctypes
 import json
 import os
+import queue
 import socket
 import subprocess
 import threading
@@ -37,6 +39,7 @@ class StudentAgent:
         on_message: Callable[[str], None] | None = None,
         on_pc_number_changed: Callable[[str], None] | None = None,
         on_update_available: Callable[[dict], None] | None = None,
+        on_notification: Callable[[dict], None] | None = None,
         on_lock_screen: Callable[[], None] | None = None,
         on_unlock_screen: Callable[[], None] | None = None,
         student_id: str = "",
@@ -52,6 +55,7 @@ class StudentAgent:
         self.on_message = on_message or (lambda text: self.on_log(f"Сообщение: {text}"))
         self.on_pc_number_changed = on_pc_number_changed or (lambda _n: None)
         self.on_update_available = on_update_available or (lambda _info: None)
+        self.on_notification = on_notification or (lambda _info: None)
         self.on_lock_screen = on_lock_screen or (lambda: None)
         self.on_unlock_screen = on_unlock_screen or (lambda: None)
         self.student_id = student_id
@@ -61,6 +65,9 @@ class StudentAgent:
         self._notified_update_version: str | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self.focus_mode_active = False
+        self._focus_thread = threading.Thread(target=self._focus_loop, daemon=True)
+        self._focus_thread.start()
         self._state_path = Path(os.environ.get("TEMP", ".")) / f"classroom_sync_{self.client_id}.json"
         self.exclude_dirs = {".venv", "__pycache__", ".git", "node_modules", "$RECYCLE.BIN", ".history"}
         self.exclude_files = {"Thumbs.db", "desktop.ini", ".DS_Store"}
@@ -71,6 +78,43 @@ class StudentAgent:
 
     def log(self, message: str) -> None:
         self.on_log(message)
+
+    def _focus_loop(self) -> None:
+        # Запрещенные заголовки или части заголовков окон
+        BAD_WORDS = ["roblox", "poki", "yandex games", "minecraft", "steam"]
+        while not self._stop.is_set():
+            time.sleep(2.0)
+            if not self.focus_mode_active:
+                continue
+            try:
+                # В Windows API перечисляем все видимые окна
+                EnumWindows = ctypes.windll.user32.EnumWindows
+                EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int))
+                GetWindowText = ctypes.windll.user32.GetWindowTextW
+                GetWindowTextLength = ctypes.windll.user32.GetWindowTextLengthW
+                IsWindowVisible = ctypes.windll.user32.IsWindowVisible
+                PostMessage = ctypes.windll.user32.PostMessageW
+                
+                WM_CLOSE = 0x0010
+                
+                def foreach_window(hwnd, lParam):
+                    if IsWindowVisible(hwnd):
+                        length = GetWindowTextLength(hwnd)
+                        if length > 0:
+                            buff = ctypes.create_unicode_buffer(length + 1)
+                            GetWindowText(hwnd, buff, length + 1)
+                            title = buff.value.lower()
+                            for bad in BAD_WORDS:
+                                if bad in title:
+                                    PostMessage(hwnd, WM_CLOSE, 0, 0)
+                                    self.log(f"Фокус: закрыто окно '{buff.value}'")
+                                    break
+                    return True
+                    
+                EnumWindows(EnumWindowsProc(foreach_window), 0)
+            except Exception:
+                pass
+
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -302,6 +346,22 @@ class StudentAgent:
             self._run_shell(payload)
         elif kind == "run_script":
             self._run_script(payload)
+        elif kind == "lock_screen":
+            self.lock_screen()
+        elif kind == "unlock":
+            self.unlock_screen()
+        elif kind == "focus_on":
+            self.focus_mode_active = True
+            self.log("Режим фокуса ВКЛ")
+        elif kind == "focus_off":
+            self.focus_mode_active = False
+            self.log("Режим фокуса ВЫКЛ")
+        elif kind == "watchdog_on":
+            self.log("Watchdog ВКЛ (в разработке)")
+        elif kind == "watchdog_off":
+            self.log("Watchdog ВЫКЛ")
+        elif kind == "notification":
+            self.on_notification(payload)
         elif kind == "configure":
             self._apply_settings(payload)
         elif kind == "offer_update":

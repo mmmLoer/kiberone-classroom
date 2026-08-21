@@ -94,6 +94,7 @@ class StudentApp(tk.Tk):
         self._session_id = session_id
         self._student_name = student_name
         self._subtitle_var.set(f"{student_name} · {self.host_var.get()}")
+        self.btn_profile.configure(state="normal", style="Accent.TButton")
         self.log(f"Вход выполнен: {student_name}")
         
         # Меняем папку на рабочем столе на имя ученика
@@ -118,6 +119,10 @@ class StudentApp(tk.Tk):
             textvariable=self._subtitle_var,
             style="Header.TLabel",
         ).pack(anchor="w", pady=(2, 0))
+
+        self.btn_profile = ttk.Button(header, text="Мой Профиль", command=self.open_profile, state="disabled")
+        self.btn_profile.pack(side="right", padx=8)
+
 
         paned = ttk.Panedwindow(self, orient="vertical")
         paned.pack(fill="both", expand=True, padx=12, pady=12)
@@ -280,6 +285,122 @@ class StudentApp(tk.Tk):
             win.bell()
         except tk.TclError:
             pass
+
+    def open_profile(self) -> None:
+        if not self._student_id or not self.agent:
+            return
+        # Запрашиваем актуальные данные профиля с сервера
+        import urllib.request, json
+        try:
+            req = urllib.request.Request(f"{self.agent.base_url}/roster/student/{self._student_id}")
+            req.add_header("X-Token", self.agent.token)
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            self.log(f"Не удалось загрузить профиль: {e}")
+            return
+            
+        if not data.get("ok"):
+            self.log("Ошибка сервера при загрузке профиля")
+            return
+            
+        student = data.get("student") or {}
+        achievements = data.get("achievements") or []
+        
+        win = tk.Toplevel(self)
+        win.title("Мой Профиль")
+        win.configure(bg="#0F172A")
+        win.geometry("500x600")
+        win.minsize(400, 500)
+        
+        header = tk.Frame(win, bg="#1E293B", pady=20)
+        header.pack(fill="x")
+        
+        name = f"{student.get('first_name', '')} {student.get('last_name', '')}"
+        tk.Label(header, text=name, font=("Segoe UI", 24, "bold"), bg="#1E293B", fg="white").pack()
+        tk.Label(header, text=f"Уровень {student.get('level', 1)}", font=("Segoe UI", 14), bg="#1E293B", fg="#38BDF8").pack(pady=(4, 0))
+        
+        # XP Bar
+        xp = student.get('xp', 0)
+        next_lvl_xp = student.get('level', 1) * 100
+        xp_pct = min(100, int((xp % 100) / 100 * 100)) if xp else 0
+        
+        progress_frame = tk.Frame(header, bg="#1E293B")
+        progress_frame.pack(fill="x", padx=40, pady=(12, 0))
+        bar_bg = tk.Frame(progress_frame, bg="#334155", height=8)
+        bar_bg.pack(fill="x", expand=True)
+        bar_bg.pack_propagate(False)
+        bar_fg = tk.Frame(bar_bg, bg="#38BDF8", width=(xp_pct * 4) or 1) # simple proportional width
+        bar_fg.pack(side="left", fill="y")
+        tk.Label(progress_frame, text=f"{xp} XP", font=("Segoe UI", 9), bg="#1E293B", fg="#94A3B8").pack(side="left", pady=(4,0))
+        tk.Label(progress_frame, text=f"до след. уровня: {100 - (xp % 100)} XP", font=("Segoe UI", 9), bg="#1E293B", fg="#94A3B8").pack(side="right", pady=(4,0))
+        
+        tk.Label(header, text=f"Баланс: {student.get('kiberons', 0)} ₭", font=("Segoe UI", 16, "bold"), bg="#1E293B", fg="#FBBF24").pack(pady=(16, 0))
+        
+        body = tk.Frame(win, bg="#0F172A", padx=20, pady=20)
+        body.pack(fill="both", expand=True)
+        tk.Label(body, text="Мои Достижения", font=("Segoe UI", 14, "bold"), bg="#0F172A", fg="white").pack(anchor="w", pady=(0, 12))
+        
+        if not achievements:
+            tk.Label(body, text="Пока нет достижений. Старайся на занятиях!", font=("Segoe UI", 11), bg="#0F172A", fg="#94A3B8").pack(anchor="w")
+        else:
+            ach_frame = tk.Frame(body, bg="#0F172A")
+            ach_frame.pack(fill="both", expand=True)
+            row, col = 0, 0
+            for a in achievements:
+                card = tk.Frame(ach_frame, bg="#1E293B", bd=1, relief="solid", highlightbackground="#334155", padx=8, pady=8)
+                card.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
+                tk.Label(card, text=a.get("icon", "🏆"), font=("Segoe UI", 24), bg="#1E293B", fg="white").pack()
+                tk.Label(card, text=a.get("title", ""), font=("Segoe UI", 10, "bold"), bg="#1E293B", fg="white", wraplength=100).pack(pady=(4,0))
+                
+                col += 1
+                if col > 2:
+                    col = 0
+                    row += 1
+
+    def show_notification(self, info: dict) -> None:
+        """Всплывашка в стиле Steam (снизу справа)."""
+        title = info.get("title", "")
+        xp = info.get("xp", 0)
+        icon = info.get("icon", "🏆")
+        
+        popup = tk.Toplevel(self)
+        popup.overrideredirect(True)
+        popup.attributes("-topmost", True)
+        popup.configure(bg="#1E293B", highlightthickness=1, highlightbackground="#334155")
+        popup.geometry("300x80")
+        
+        # Размещаем в правом нижнем углу экрана
+        sw = popup.winfo_screenwidth()
+        sh = popup.winfo_screenheight()
+        # Ставим чуть выше панели задач (около 50px)
+        x = sw - 320
+        y = sh - 140
+        popup.geometry(f"+{x}+{y}")
+        
+        # Внутренний контейнер
+        frame = tk.Frame(popup, bg="#1E293B", padx=16, pady=16)
+        frame.pack(fill="both", expand=True)
+        
+        # Левая часть - иконка
+        tk.Label(frame, text=icon, font=("Segoe UI", 24), bg="#1E293B", fg="white").pack(side="left", padx=(0, 16))
+        
+        # Правая часть - текст
+        right = tk.Frame(frame, bg="#1E293B")
+        right.pack(side="left", fill="both", expand=True)
+        tk.Label(right, text="Получено достижение!", font=("Segoe UI", 9, "bold"), bg="#1E293B", fg="#94A3B8").pack(anchor="w")
+        tk.Label(right, text=title, font=("Segoe UI", 11, "bold"), bg="#1E293B", fg="white").pack(anchor="w")
+        if xp:
+            tk.Label(right, text=f"+{xp} XP", font=("Segoe UI", 9), bg="#1E293B", fg="#38BDF8").pack(anchor="w")
+            
+        # Анимация исчезновения через 5 секунд
+        def close():
+            try:
+                popup.destroy()
+            except tk.TclError:
+                pass
+        popup.after(5000, close)
+
 
     def lock_screen(self) -> None:
         """Полноэкранная блокировка без Windows-пароля (снимается командой тьютора)."""
@@ -477,11 +598,13 @@ class StudentApp(tk.Tk):
             on_message=lambda text: self.after(0, self.show_teacher_message, text),
             on_pc_number_changed=lambda number: self.after(0, self._on_pc_number_changed, number),
             on_update_available=lambda info: self.after(0, self.prompt_update, info),
+            on_notification=lambda info: self.after(0, self.show_notification, info),
             on_lock_screen=lambda: self.after(0, self.lock_screen),
             on_unlock_screen=lambda: self.after(0, self.unlock_screen),
             student_id=self._student_id,
             session_id=self._session_id,
         )
+
 
         ok, detail = agent.ping_details()
         if not ok:

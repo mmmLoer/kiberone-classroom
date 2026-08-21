@@ -163,6 +163,22 @@ class TeacherApp(tk.Tk):
             style="Muted.TLabel",
         ).grid(row=4, column=2, sticky="w", padx=(8, 0))
 
+        control_lf = ttk.LabelFrame(right, text="Контроль и Безопасность (Windows)", padding=12)
+        control_lf.pack(fill="x", padx=4, pady=(0, 8))
+
+        ttk.Button(control_lf, text="🎯 Режим Фокуса (Убить игры)", command=self.enable_focus).grid(row=0, column=0, sticky="ew", pady=4, padx=(0, 6))
+        ttk.Button(control_lf, text="Выключить Фокус", command=self.disable_focus, style="Accent.TButton").grid(row=0, column=1, sticky="ew", pady=4)
+        
+        ttk.Button(control_lf, text="🛡️ Включить Сторожа", command=self.enable_watchdog).grid(row=1, column=0, sticky="ew", pady=4, padx=(0, 6))
+        ttk.Button(control_lf, text="Выключить Сторожа", command=self.disable_watchdog, style="Accent.TButton").grid(row=1, column=1, sticky="ew", pady=4)
+
+        ttk.Label(
+            actions_host,
+            text="Используй Ctrl+Клик или Shift+Клик в таблице для выбора нескольких ПК",
+            style="Muted.TLabel",
+            anchor="center",
+        ).pack(fill="x", pady=6)
+
         ttk.Label(actions, text="Скрипт запуска", style="Surface.TLabel").grid(row=5, column=0, sticky="w", pady=(10, 0))
         self.script_var = tk.StringVar()
         self.script_combo = ttk.Combobox(actions, textvariable=self.script_var, state="readonly")
@@ -414,7 +430,19 @@ class TeacherApp(tk.Tk):
         self._send_command("lock_screen")
 
     def unlock_screens(self) -> None:
-        self._send_command("unlock_screen")
+        self._send_command("unlock")
+
+    def enable_focus(self) -> None:
+        self._send_command("focus_on")
+
+    def disable_focus(self) -> None:
+        self._send_command("focus_off")
+
+    def enable_watchdog(self) -> None:
+        self._send_command("watchdog_on")
+
+    def disable_watchdog(self) -> None:
+        self._send_command("watchdog_off")
 
     def rename_pc(self) -> None:
         ids = list(self.tree.selection())

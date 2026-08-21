@@ -557,21 +557,40 @@ class ClassroomServer:
                     group_id = query.get("group_id", [None])[0]
                     self._json(HTTPStatus.OK, {"ok": True, "students": store.db.list_students(group_id)})
                     return
-                if route.startswith("/roster/student/") and route.endswith("/history"):
-                    sid = route[len("/roster/student/"):-len("/history")]
-                    student = store.db.get_student(sid)
-                    if not student:
-                        self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
-                        return
-                    sessions = store.db.list_sessions(sid)
-                    grades = store.db.get_grades(sid)
-                    self._json(HTTPStatus.OK, {
-                        "ok": True,
-                        "student": student,
-                        "sessions": sessions,
-                        "grades": grades,
-                    })
+                if route == "/roster/achievements":
+                    self._json(HTTPStatus.OK, {"ok": True, "achievements": store.db.list_achievements()})
                     return
+                if route.startswith("/roster/student/"):
+                    if route.endswith("/history"):
+                        sid = route[len("/roster/student/"):-len("/history")]
+                        student = store.db.get_student(sid)
+                        if not student:
+                            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
+                            return
+                        sessions = store.db.list_sessions(sid)
+                        grades = store.db.get_grades(sid)
+                        achievements = store.db.get_student_achievements(sid)
+                        self._json(HTTPStatus.OK, {
+                            "ok": True,
+                            "student": student,
+                            "sessions": sessions,
+                            "grades": grades,
+                            "achievements": achievements,
+                        })
+                        return
+                    elif route.endswith("/achievements"):
+                        sid = route[len("/roster/student/"):-len("/achievements")]
+                        self._json(HTTPStatus.OK, {"ok": True, "achievements": store.db.get_student_achievements(sid)})
+                        return
+                    else:
+                        # GET /roster/student/<sid>
+                        sid = route[len("/roster/student/"):]
+                        st = store.db.get_student(sid)
+                        if st:
+                            self._json(HTTPStatus.OK, {"ok": True, "student": st, "achievements": store.db.get_student_achievements(sid)})
+                        else:
+                            self._json(HTTPStatus.NOT_FOUND, {"ok": False})
+                        return
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
 
             def do_POST(self):
@@ -633,10 +652,40 @@ class ClassroomServer:
                     log(f"Команда {kind} -> {len(client_ids)} ПК")
                     self._json(HTTPStatus.OK, {"ok": True, "queued": count})
                     return
+                if route.startswith("/roster/student/"):
+                    # Подмаршруты для студента (POST)
+                    if route.endswith("/achievements"):
+                        sid = route[len("/roster/student/"):-len("/achievements")]
+                        payload = json.loads(body.decode("utf-8") or "{}")
+                        ach_id = payload.get("achievement_id")
+                        granted = store.db.grant_achievement(sid, ach_id)
+                        if granted:
+                            # Уведомляем клиента, если он онлайн
+                            for c in store.list_clients():
+                                if c.get("student_id") == sid and c.get("status") == "online":
+                                    store.enqueue([c["client_id"]], "notification", {
+                                        "title": granted.get("title", ""),
+                                        "xp": granted.get("xp_reward", 0),
+                                        "icon": granted.get("icon", ""),
+                                    })
+                            self._json(HTTPStatus.OK, {"ok": True, "granted": granted, "student": store.db.get_student(sid)})
+                        else:
+                            self._json(HTTPStatus.BAD_REQUEST, {"ok": False})
+                        return
+                    elif route.endswith("/kiberons"):
+                        sid = route[len("/roster/student/"):-len("/kiberons")]
+                        payload = json.loads(body.decode("utf-8") or "{}")
+                        delta = int(payload.get("delta") or 0)
+                        st = store.db.update_student_currency(sid, delta)
+                        self._json(HTTPStatus.OK, {"ok": True, "student": st})
+                        return
+                    # Fallthrough для других /roster/student/... (если есть)
+
                 # ── Roster POST ──
                 if route == "/roster/checkin":
                     payload = json.loads(body.decode("utf-8") or "{}")
                     student_id = str(payload.get("student_id") or "").strip()
+
                     if not student_id or not store.db.get_student(student_id):
                         self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "unknown student_id"})
                         return
@@ -714,6 +763,7 @@ class ClassroomServer:
                             group_id=payload.get("group_id"),
                             comment=payload.get("comment"),
                             portfolio_url=payload.get("portfolio_url"),
+                            crm_id=payload.get("crm_id"),
                         )
                         self._json(HTTPStatus.OK, {"ok": True, "student": student})
                     return
@@ -739,6 +789,35 @@ class ClassroomServer:
                     log(f"Занятие удалено: {session_id}")
                     self._json(HTTPStatus.OK, {"ok": ok})
                     return
+
+                # ── Gamification ──
+                if route == "/roster/achievements":
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    if payload.get("_delete"):
+                        ok = store.db.delete_achievement(payload.get("id", ""))
+                        self._json(HTTPStatus.OK, {"ok": ok})
+                    else:
+                        title = str(payload.get("title") or "").strip()
+                        if not title:
+                            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "title required"})
+                            return
+                        desc = str(payload.get("description") or "").strip()
+                        icon = str(payload.get("icon") or "").strip()
+                        xp = int(payload.get("xp_reward") or 0)
+                        gids = payload.get("group_ids") or []
+                        ach = store.db.create_achievement(title, desc, icon, xp, gids)
+                        self._json(HTTPStatus.OK, {"ok": True, "achievement": ach})
+                    return
+
+                if route.startswith("/roster/student_achievement/"):
+                    said = route[len("/roster/student_achievement/"):]
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    if payload.get("_delete"):
+                        ok = store.db.revoke_achievement(said)
+                        self._json(HTTPStatus.OK, {"ok": ok})
+                    return
+
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
+
 
         return Handler

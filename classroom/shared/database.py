@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS students (
     group_id        TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     comment         TEXT NOT NULL DEFAULT '',
     portfolio_url   TEXT NOT NULL DEFAULT '',
+    crm_id          TEXT NOT NULL DEFAULT '',
+    kiberons        INTEGER NOT NULL DEFAULT 0,
+    xp              INTEGER NOT NULL DEFAULT 0,
+    level           INTEGER NOT NULL DEFAULT 1,
     created_at      REAL NOT NULL
 );
 
@@ -47,16 +51,45 @@ CREATE TABLE IF NOT EXISTS grades (
     created_at  REAL NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS achievements (
+    id          TEXT PRIMARY KEY,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    icon        TEXT NOT NULL DEFAULT '',
+    xp_reward   INTEGER NOT NULL DEFAULT 0,
+    created_at  REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS group_achievements (
+    group_id       TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    achievement_id TEXT NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
+    PRIMARY KEY (group_id, achievement_id)
+);
+
+CREATE TABLE IF NOT EXISTS student_achievements (
+    id             TEXT PRIMARY KEY,
+    student_id     TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    achievement_id TEXT NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
+    granted_at     REAL NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_students_group   ON students(group_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_student ON sessions(student_id);
 CREATE INDEX IF NOT EXISTS idx_grades_student   ON grades(student_id);
 CREATE INDEX IF NOT EXISTS idx_grades_session   ON grades(session_id);
+CREATE INDEX IF NOT EXISTS idx_st_achievements  ON student_achievements(student_id);
 """
 
 _MIGRATIONS = [
-    # v1.3.1: добавляем поле portfolio_url если его нет (ALTER TABLE не упадёт если уже есть)
+    # v1.3.1: portfolio_url
     "ALTER TABLE students ADD COLUMN portfolio_url TEXT NOT NULL DEFAULT ''",
+    # v2.0: gamification & CRM
+    "ALTER TABLE students ADD COLUMN crm_id TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE students ADD COLUMN kiberons INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE students ADD COLUMN xp INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE students ADD COLUMN level INTEGER NOT NULL DEFAULT 1",
 ]
+
 
 _DB_NAME = ".classroom.db"
 
@@ -175,24 +208,27 @@ class ClassroomDB:
         age: int | None = None,
         comment: str = "",
         portfolio_url: str = "",
+        crm_id: str = "",
     ) -> dict:
         sid = self._new_id()
         self._exec_commit(
-            "INSERT INTO students (id, last_name, first_name, age, group_id, comment, portfolio_url, created_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (sid, last_name.strip(), first_name.strip(), age, group_id, comment.strip(), portfolio_url.strip(), time.time()),
+            "INSERT INTO students (id, last_name, first_name, age, group_id, comment, portfolio_url, crm_id, created_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (sid, last_name.strip(), first_name.strip(), age, group_id, comment.strip(), portfolio_url.strip(), crm_id.strip(), time.time()),
         )
         return self.get_student(sid)  # type: ignore[return-value]
+
 
     def update_student(
         self,
         student_id: str,
         last_name: str | None = None,
         first_name: str | None = None,
-        age: int | None = ...,  # type: ignore[assignment]
+        age: int | type(Ellipsis) = ...,
         group_id: str | None = None,
         comment: str | None = None,
         portfolio_url: str | None = None,
+        crm_id: str | None = None,
     ) -> dict | None:
         s = self.get_student(student_id)
         if not s:
@@ -203,9 +239,10 @@ class ClassroomDB:
         new_group = group_id or s["group_id"]
         new_comment = (comment if comment is not None else s["comment"]).strip()
         new_portfolio = (portfolio_url if portfolio_url is not None else s.get("portfolio_url", "")).strip()
+        new_crm = (crm_id if crm_id is not None else s.get("crm_id", "")).strip()
         self._exec_commit(
-            "UPDATE students SET last_name=?, first_name=?, age=?, group_id=?, comment=?, portfolio_url=? WHERE id=?",
-            (new_last, new_first, new_age, new_group, new_comment, new_portfolio, student_id),
+            "UPDATE students SET last_name=?, first_name=?, age=?, group_id=?, comment=?, portfolio_url=?, crm_id=? WHERE id=?",
+            (new_last, new_first, new_age, new_group, new_comment, new_portfolio, new_crm, student_id),
         )
         return self.get_student(student_id)
 
@@ -279,3 +316,87 @@ class ClassroomDB:
             "SELECT * FROM grades WHERE student_id = ? ORDER BY created_at DESC",
             (student_id,),
         )
+
+    # ── gamification ──────────────────────────────────────────────────────────
+
+    def update_student_currency(self, student_id: str, kiberons_delta: int) -> dict | None:
+        """Изменяет баланс киберонов."""
+        s = self.get_student(student_id)
+        if not s:
+            return None
+        new_balance = max(0, s["kiberons"] + kiberons_delta)
+        self._exec_commit("UPDATE students SET kiberons=? WHERE id=?", (new_balance, student_id))
+        return self.get_student(student_id)
+
+    def add_student_xp(self, student_id: str, xp_delta: int) -> dict | None:
+        """Добавляет XP и пересчитывает уровень (100 XP = 1 уровень)."""
+        s = self.get_student(student_id)
+        if not s:
+            return None
+        new_xp = max(0, s["xp"] + xp_delta)
+        new_level = (new_xp // 100) + 1
+        self._exec_commit("UPDATE students SET xp=?, level=? WHERE id=?", (new_xp, new_level, student_id))
+        return self.get_student(student_id)
+
+    def list_achievements(self) -> list[dict]:
+        achievements = self._rows("SELECT * FROM achievements ORDER BY created_at DESC")
+        for a in achievements:
+            # Получаем привязанные группы
+            groups = self._rows("SELECT group_id FROM group_achievements WHERE achievement_id=?", (a["id"],))
+            a["group_ids"] = [g["group_id"] for g in groups]
+        return achievements
+
+    def create_achievement(self, title: str, description: str, icon: str, xp_reward: int, group_ids: list[str]) -> dict:
+        aid = self._new_id()
+        self._exec_commit(
+            "INSERT INTO achievements (id, title, description, icon, xp_reward, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (aid, title.strip(), description.strip(), icon.strip(), xp_reward, time.time())
+        )
+        for gid in group_ids:
+            self._exec_commit("INSERT INTO group_achievements (group_id, achievement_id) VALUES (?, ?)", (gid, aid))
+        
+        row = self._one("SELECT * FROM achievements WHERE id=?", (aid,))
+        if row:
+            row["group_ids"] = group_ids
+        return row  # type: ignore[return-value]
+
+    def delete_achievement(self, achievement_id: str) -> bool:
+        cur = self._exec_commit("DELETE FROM achievements WHERE id=?", (achievement_id,))
+        return cur.rowcount > 0
+
+    def get_student_achievements(self, student_id: str) -> list[dict]:
+        return self._rows(
+            "SELECT sa.id as student_achievement_id, a.*, sa.granted_at "
+            "FROM student_achievements sa "
+            "JOIN achievements a ON sa.achievement_id = a.id "
+            "WHERE sa.student_id = ? "
+            "ORDER BY sa.granted_at DESC",
+            (student_id,)
+        )
+
+    def grant_achievement(self, student_id: str, achievement_id: str) -> dict | None:
+        """Выдаёт ачивку и начисляет XP."""
+        ach = self._one("SELECT * FROM achievements WHERE id=?", (achievement_id,))
+        if not ach:
+            return None
+        
+        sa_id = self._new_id()
+        self._exec_commit(
+            "INSERT INTO student_achievements (id, student_id, achievement_id, granted_at) VALUES (?, ?, ?, ?)",
+            (sa_id, student_id, achievement_id, time.time())
+        )
+        # Начисляем XP
+        self.add_student_xp(student_id, ach["xp_reward"])
+        
+        return self._one(
+            "SELECT sa.id as student_achievement_id, a.*, sa.granted_at "
+            "FROM student_achievements sa "
+            "JOIN achievements a ON sa.achievement_id = a.id "
+            "WHERE sa.id = ?",
+            (sa_id,)
+        )
+
+    def revoke_achievement(self, student_achievement_id: str) -> bool:
+        """Удаляет выданную ачивку у ученика (XP не отнимаем, это сложнее трекать и обычно не нужно)."""
+        cur = self._exec_commit("DELETE FROM student_achievements WHERE id=?", (student_achievement_id,))
+        return cur.rowcount > 0

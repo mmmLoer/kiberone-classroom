@@ -10,6 +10,7 @@ from typing import Callable
 
 from ..shared.osutil import open_in_os
 from ..shared.theme import COLORS, FONTS
+from .achievements_dialog import AchievementsDialog
 
 
 def _stars(value: int) -> str:
@@ -79,6 +80,7 @@ class RosterTab(ttk.Frame):
         grp_hdr = ttk.Frame(left)
         grp_hdr.pack(fill="x", pady=(0, 6))
         ttk.Label(grp_hdr, text="Группы", style="Title.TLabel").pack(side="left")
+        ttk.Button(grp_hdr, text="🏆 Ачивки", command=self._open_achievements, style="Ghost.TButton").pack(side="right", padx=2)
         ttk.Button(grp_hdr, text="＋", width=3, command=self._add_group, style="Ghost.TButton").pack(side="right")
         ttk.Button(grp_hdr, text="✎", width=3, command=self._edit_group, style="Ghost.TButton").pack(side="right", padx=2)
         ttk.Button(grp_hdr, text="✕", width=3, command=self._del_group, style="Ghost.TButton").pack(side="right")
@@ -170,19 +172,30 @@ class RosterTab(ttk.Frame):
             command=self._open_folder,
         ).pack(side="left", padx=(8, 0))
 
-        # Портфолио URL (ввод тьютором)
-        portfolio_lf = ttk.LabelFrame(right_outer, text="Ссылка на портфолио (только для тьютора)", padding=8)
+        # Портфолио URL и CRM ID
+        portfolio_lf = ttk.LabelFrame(right_outer, text="Доп. информация (только для тьютора)", padding=8)
         portfolio_lf.pack(fill="x", pady=(0, 8))
 
         portfolio_row = ttk.Frame(portfolio_lf)
-        portfolio_row.pack(fill="x")
+        portfolio_row.pack(fill="x", pady=(0, 4))
+        ttk.Label(portfolio_row, text="Портфолио:", width=10).pack(side="left")
         self._portfolio_entry = ttk.Entry(portfolio_row)
         self._portfolio_entry.pack(side="left", fill="x", expand=True)
+
+        crm_row = ttk.Frame(portfolio_lf)
+        crm_row.pack(fill="x")
+        ttk.Label(crm_row, text="CRM ID:", width=10).pack(side="left")
+        self._crm_entry = ttk.Entry(crm_row)
+        self._crm_entry.pack(side="left", fill="x", expand=True)
+
+        btn_row = ttk.Frame(portfolio_lf)
+        btn_row.pack(fill="x", pady=(6, 0))
         ttk.Button(
-            portfolio_row, text="Сохранить",
-            command=self._save_portfolio,
+            btn_row, text="Сохранить информацию",
+            command=self._save_info,
             style="Accent.TButton",
-        ).pack(side="left", padx=(6, 0))
+        ).pack(side="right")
+
 
         # Комментарий тьютора
         comment_lf = ttk.LabelFrame(right_outer, text="Комментарий тьютора", padding=8)
@@ -246,10 +259,43 @@ class RosterTab(ttk.Frame):
 
         ttk.Label(grade_inner, text="Заметка:", style="TLabel").pack(side="left", padx=(14, 4))
         self._grade_note = ttk.Entry(grade_inner, width=18)
-        self._grade_note.pack(side="left")
         ttk.Button(
             grade_inner, text="Сохранить", command=self._save_grade, style="Accent.TButton"
         ).pack(side="left", padx=(8, 0))
+
+        # Секция Геймификации
+        gami_lf = ttk.LabelFrame(right_outer, text="Прогресс и Геймификация", padding=8)
+        gami_lf.pack(fill="x", pady=(8, 0))
+
+        top_gami = ttk.Frame(gami_lf)
+        top_gami.pack(fill="x")
+        
+        self._lbl_level = ttk.Label(top_gami, text="Уровень: 1", font=FONTS["title"])
+        self._lbl_level.pack(side="left")
+        
+        self._lbl_xp = ttk.Label(top_gami, text="(0 XP)", style="Muted.TLabel")
+        self._lbl_xp.pack(side="left", padx=(4, 16))
+        
+        self._lbl_kib = ttk.Label(top_gami, text="Кибероны: 0 ₭", font=FONTS["title"])
+        self._lbl_kib.pack(side="left")
+        
+        ttk.Button(top_gami, text="- ₭", width=3, command=lambda: self._change_kiberons(-10)).pack(side="left", padx=(8, 2))
+        ttk.Button(top_gami, text="+ ₭", width=3, command=lambda: self._change_kiberons(10)).pack(side="left")
+
+        ach_row = ttk.Frame(gami_lf)
+        ach_row.pack(fill="x", pady=(8, 0))
+        ttk.Label(ach_row, text="Достижения:").pack(side="left")
+        ttk.Button(ach_row, text="Выдать ачивку", command=self._grant_achievement_dialog).pack(side="right")
+        
+        self._ach_tree = ttk.Treeview(gami_lf, columns=("icon", "title", "xp"), show="tree", height=3)
+        self._ach_tree.column("#0", width=0, stretch=False)
+        self._ach_tree.column("icon", width=30, anchor="center")
+        self._ach_tree.column("title", width=150, stretch=True)
+        self._ach_tree.column("xp", width=60, anchor="center")
+        self._ach_tree.pack(fill="x", pady=(4, 0))
+        
+        ttk.Button(gami_lf, text="✕ Отозвать выбранную ачивку", command=self._revoke_achievement, style="Danger.TButton").pack(anchor="e", pady=(4, 0))
+
 
     # ── groups ──────────────────────────────────────────────────────────────
 
@@ -437,6 +483,7 @@ class RosterTab(ttk.Frame):
         student = data["student"]
         sessions = data.get("sessions") or []
         grades_list = data.get("grades") or []
+        achievements_list = data.get("achievements") or []
         grade_by_session: dict[str, dict] = {g["session_id"]: g for g in grades_list if g.get("session_id")}
 
         name = f"{student['last_name']} {student['first_name']}"
@@ -445,9 +492,9 @@ class RosterTab(ttk.Frame):
         group_name = group["name"] if group else "—"
         age_str = f" · {student['age']} лет" if student.get("age") else ""
         module_str = f" · {group['module']}" if group and group.get("module") else ""
-        self._card_meta.configure(text=f"Группа: {group_name}{module_str}{age_str}")
+        self._card_meta.configure(text=f"Группа: {group_name}{module_str}{age_str} | ID: {student['id'][:6]}")
 
-        # Портфолио
+        # Доп. инфа
         portfolio_url = student.get("portfolio_url") or ""
         self._portfolio_entry.delete(0, "end")
         self._portfolio_entry.insert(0, portfolio_url)
@@ -456,10 +503,26 @@ class RosterTab(ttk.Frame):
         else:
             self._portfolio_btn.configure(state="disabled")
 
+        crm_id = student.get("crm_id") or ""
+        self._crm_entry.delete(0, "end")
+        self._crm_entry.insert(0, crm_id)
+
         # Комментарий
         self._comment_box.configure(state="normal")
         self._comment_box.delete("1.0", "end")
         self._comment_box.insert("1.0", student.get("comment") or "")
+
+        # Геймификация
+        self._lbl_level.configure(text=f"Уровень: {student.get('level', 1)}")
+        self._lbl_xp.configure(text=f"({student.get('xp', 0)} XP)")
+        self._lbl_kib.configure(text=f"Кибероны: {student.get('kiberons', 0)} ₭")
+        
+        for item in self._ach_tree.get_children():
+            self._ach_tree.delete(item)
+        for a in achievements_list:
+            self._ach_tree.insert("", "end", iid=a["student_achievement_id"], values=(
+                a.get("icon", ""), a.get("title", ""), f"+{a.get('xp_reward', 0)} XP"
+            ))
 
         # История
         for row in self._hist_tree.get_children():
