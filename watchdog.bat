@@ -1,4 +1,5 @@
 @echo off
+title KIBERoneWatchdog
 setlocal
 echo KIBERone Watchdog Started
 echo Monitoring KIBERoneStudent.exe...

@@ -271,6 +271,10 @@ class StudentAgent:
                 "app_version": self.app_version,
                 "student_id": self.student_id,
                 "session_id": self.session_id,
+                "extra": {
+                    "watchdog_active": getattr(self, "watchdog_active", False),
+                    "focus_mode_active": self.focus_mode_active,
+                }
             }
         ).encode("utf-8")
         result = self._request(
@@ -388,8 +392,21 @@ class StudentAgent:
             self.focus_mode_active = False
             self.log("Режим фокуса ВЫКЛ")
         elif kind == "watchdog_on":
-            self.log("Watchdog ВКЛ (в разработке)")
+            self.watchdog_active = True
+            try:
+                import subprocess
+                from ..shared.constants import app_dir
+                subprocess.Popen(["cmd.exe", "/c", "watchdog.bat"], cwd=str(app_dir()), creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+            except Exception as e:
+                self.log(f"Watchdog error: {e}")
+            self.log("Watchdog ВКЛ")
         elif kind == "watchdog_off":
+            self.watchdog_active = False
+            try:
+                import subprocess
+                subprocess.run(["taskkill", "/F", "/FI", "WINDOWTITLE eq KIBERoneWatchdog*"], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+            except Exception:
+                pass
             self.log("Watchdog ВЫКЛ")
         elif kind == "notification":
             self.on_notification(payload)

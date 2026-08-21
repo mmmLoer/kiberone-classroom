@@ -161,6 +161,7 @@ class ClassroomStore:
                         "watch_folder": client.watch_folder,
                         "student_id": client.student_id,
                         "session_id": client.session_id,
+                        "extra": client.extra,
                     }
                 )
             result.sort(key=lambda item: (item["pc_number"] or "999", item["client_id"]))

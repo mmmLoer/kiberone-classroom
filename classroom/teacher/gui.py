@@ -108,8 +108,8 @@ class TeacherApp(tk.Tk):
         list_card = ttk.Frame(left, style="Surface.TFrame", padding=8)
         list_card.pack(fill="both", expand=True, pady=(8, 0))
 
-        self.tree = ttk.Treeview(list_card, columns=("pc", "ip", "status", "student"), show="headings")
-        for col, title, width in [("pc", "ПК", 55), ("ip", "IP", 110), ("status", "Статус", 80), ("student", "Ученик / ID", 140)]:
+        self.tree = ttk.Treeview(list_card, columns=("pc", "ip", "status", "student", "extra"), show="headings")
+        for col, title, width in [("pc", "ПК", 55), ("ip", "IP", 110), ("status", "Статус", 80), ("student", "Ученик / ID", 140), ("extra", "Режимы", 70)]:
             self.tree.heading(col, text=title)
             self.tree.column(col, width=width, anchor="w", stretch=True)
         self.tree.pack(fill="both", expand=True)
@@ -355,6 +355,13 @@ class TeacherApp(tk.Tk):
                     student_display = f"{student_record['last_name']} {student_record['first_name']}"
                     seen_student_ids.add(student_id)
 
+            extra_data = client.get("extra") or {}
+            extra_str = ""
+            if extra_data.get("watchdog_active"):
+                extra_str += "🛡️ "
+            if extra_data.get("focus_mode_active"):
+                extra_str += "🎯 "
+
             self.tree.insert(
                 "", "end", iid=client["client_id"],
                 values=(
@@ -362,6 +369,7 @@ class TeacherApp(tk.Tk):
                     client.get("ip") or "—",
                     "online" if status == "online" else "offline",
                     student_display,
+                    extra_str.strip(),
                 ),
                 tags=(status,),
             )

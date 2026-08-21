@@ -307,7 +307,7 @@ class StudentApp(tk.Tk):
         import urllib.request, json
         try:
             req = urllib.request.Request(f"{self.agent.base_url}/roster/student/{self._student_id}")
-            req.add_header("X-Token", self.agent.token)
+            req.add_header("X-Sync-Token", self.agent.token)
             with urllib.request.urlopen(req, timeout=5.0) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
         except Exception as e:
