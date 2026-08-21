@@ -110,6 +110,10 @@ class ClassroomStore:
             student_id = (info.student_id if info else "") or ""
             pc = (info.pc_number if info else "") or ""
 
+        # Если это фиктивный ID офлайн-ученика из UI тьютора
+        if not student_id and client_id.startswith("offline_student_"):
+            student_id = client_id.replace("offline_student_", "")
+
         if student_id:
             student = self.db.get_student(student_id)
             if student:
