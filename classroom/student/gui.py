@@ -107,7 +107,9 @@ class StudentApp(tk.Tk):
         self.log(f"Папка синхронизации: {new_folder}")
 
         # Автоматически подключаемся
-        self.after(300, self.connect)
+        self.log("Запуск автоматического подключения...")
+        self.after(300, lambda: self.connect(blocking=False))
+
     def change_student(self) -> None:
         self._student_id = ""
         self._session_id = ""
@@ -562,7 +564,8 @@ class StudentApp(tk.Tk):
         return self.agent is not None
 
     def connect(self, blocking: bool = False) -> None:
-        if self._connecting:
+        if getattr(self, "_connecting", False):
+            self.log("Подключение уже в процессе, пропускаем...")
             return
         self._save_fields()
         if blocking:

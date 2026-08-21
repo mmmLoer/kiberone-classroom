@@ -438,7 +438,7 @@ class TeacherApp(tk.Tk):
         self._send_command("lock_screen")
 
     def unlock_screens(self) -> None:
-        self._send_command("unlock")
+        self._send_command("unlock_screen")
 
     def enable_focus(self) -> None:
         self._send_command("focus_on")

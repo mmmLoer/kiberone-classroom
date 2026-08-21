@@ -395,7 +395,7 @@ class StudentAgent:
                 from ..shared.constants import app_dir
                 bat_path = app_dir() / "watchdog.bat"
                 with open(bat_path, "w", encoding="utf-8") as f:
-                    f.write('@echo off\ntitle KIBERoneWatchdog\nsetlocal\necho KIBERone Watchdog Started\necho Monitoring KIBERoneStudent.exe...\n\n:loop\ntasklist | find /i "KIBERoneStudent.exe" > nul\nif errorlevel 1 (\n    echo [%time%] KIBERoneStudent.exe not found! Restarting...\n    set KIBERONE_WATCHDOG_RECOVERED=1\n    start "" "KIBERoneStudent.exe"\n)\ntimeout /t 5 /nobreak > nul\ngoto loop\n')
+                    f.write('@echo off\ntitle KIBERoneWatchdog\nsetlocal\nset _MEIPASS2=\nset _MEIPASS=\nset PYTHONPATH=\necho KIBERone Watchdog Started\necho Monitoring KIBERoneStudent.exe...\n\n:loop\ntasklist | find /i "KIBERoneStudent.exe" > nul\nif errorlevel 1 (\n    echo [%time%] KIBERoneStudent.exe not found! Restarting...\n    set KIBERONE_WATCHDOG_RECOVERED=1\n    start "" "KIBERoneStudent.exe"\n)\ntimeout /t 5 /nobreak > nul\ngoto loop\n')
                 subprocess.Popen(["cmd.exe", "/c", "watchdog.bat"], cwd=str(app_dir()), creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             except Exception as e:
                 self.log(f"Watchdog error: {e}")
