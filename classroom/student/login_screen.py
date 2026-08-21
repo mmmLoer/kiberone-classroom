@@ -204,14 +204,23 @@ class StudentLoginScreen(tk.Toplevel):
         saved_group = self._prefs.get("group_name", "")
         if saved_group and saved_group in names:
             self._group_var.set(saved_group)
-            self._fetch_students()
+            self._on_group_selected()
         else:
             self._group_var.set(names[0])
-            self._fetch_students()
+            self._on_group_selected()
 
     def _on_group_selected(self, _event=None) -> None:
         self._student_combo.set("")
         self._login_btn.configure(state="disabled")
+        
+        group_name = self._group_var.get()
+        group = next((g for g in self._groups if g["name"] == group_name), None)
+        if group and group.get("topics"):
+            topics = [t.strip() for t in group["topics"].replace("\n", ",").split(",") if t.strip()]
+            self._topic_combo["values"] = topics or _DEFAULT_TOPICS
+        else:
+            self._topic_combo["values"] = _DEFAULT_TOPICS
+            
         self._fetch_students()
 
     def _fetch_students(self) -> None:

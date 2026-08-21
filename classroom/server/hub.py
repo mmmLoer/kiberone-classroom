@@ -570,12 +570,14 @@ class ClassroomServer:
                         sessions = store.db.list_sessions(sid)
                         grades = store.db.get_grades(sid)
                         achievements = store.db.get_student_achievements(sid)
+                        kiberon_history = store.db.get_kiberon_history(sid)
                         self._json(HTTPStatus.OK, {
                             "ok": True,
                             "student": student,
                             "sessions": sessions,
                             "grades": grades,
                             "achievements": achievements,
+                            "kiberon_history": kiberon_history,
                         })
                         return
                     elif route.endswith("/achievements"):
@@ -676,7 +678,8 @@ class ClassroomServer:
                         sid = route[len("/roster/student/"):-len("/kiberons")]
                         payload = json.loads(body.decode("utf-8") or "{}")
                         delta = int(payload.get("delta") or 0)
-                        st = store.db.update_student_currency(sid, delta)
+                        reason = str(payload.get("reason") or "Ручное начисление")
+                        st = store.db.update_student_currency(sid, delta, reason)
                         
                         # Check for Mr 67 secret achievement
                         if st and st.get("kiberons") == 67:
@@ -737,11 +740,12 @@ class ClassroomServer:
                     payload = json.loads(body.decode("utf-8") or "{}")
                     name = str(payload.get("name") or "").strip()
                     module = str(payload.get("module") or "").strip()
+                    topics = str(payload.get("topics") or "").strip()
                     if not name:
                         self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "name required"})
                         return
-                    group = store.db.create_group(name, module)
-                    self._json(HTTPStatus.OK, {"ok": True, "group": group})
+                    grp = store.db.create_group(name, module, topics)
+                    self._json(HTTPStatus.OK, {"ok": True, "group": grp})
                     return
                 if route.startswith("/roster/groups/"):
                     gid = route[len("/roster/groups/"):]
@@ -754,6 +758,7 @@ class ClassroomServer:
                             gid,
                             name=payload.get("name"),
                             module=payload.get("module"),
+                            topics=payload.get("topics")
                         )
                         self._json(HTTPStatus.OK, {"ok": True, "group": group})
                     return

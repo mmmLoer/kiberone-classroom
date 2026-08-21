@@ -95,7 +95,18 @@ class StudentApp(tk.Tk):
         self._student_name = student_name
         self._subtitle_var.set(f"{student_name} · {self.host_var.get()}")
         self.btn_profile.configure(state="normal", style="Accent.TButton")
+        self.btn_change_student.configure(state="normal")
         self.log(f"Вход выполнен: {student_name}")
+        
+    def change_student(self) -> None:
+        self._student_id = ""
+        self._session_id = ""
+        self._student_name = ""
+        self._subtitle_var.set(f"Подключение к тьютору · v{APP_VERSION}")
+        self.btn_profile.configure(state="disabled", style="TButton")
+        self.btn_change_student.configure(state="disabled")
+        host = self.host_var.get().strip() or get_teacher_host("")
+        self._show_login_screen(host)
         
         # Меняем папку на рабочем столе на имя ученика
         new_folder = str(Path.home() / "Desktop" / student_name)
@@ -122,6 +133,9 @@ class StudentApp(tk.Tk):
 
         self.btn_profile = ttk.Button(header, text="Мой Профиль", command=self.open_profile, state="disabled")
         self.btn_profile.pack(side="right", padx=8)
+        
+        self.btn_change_student = ttk.Button(header, text="Сменить ученика", command=self.change_student, state="disabled")
+        self.btn_change_student.pack(side="right")
 
 
         paned = ttk.Panedwindow(self, orient="vertical")

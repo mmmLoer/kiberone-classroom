@@ -172,29 +172,7 @@ class RosterTab(ttk.Frame):
             command=self._open_folder,
         ).pack(side="left", padx=(8, 0))
 
-        # Портфолио URL и CRM ID
-        portfolio_lf = ttk.LabelFrame(right_outer, text="Доп. информация (только для тьютора)", padding=8)
-        portfolio_lf.pack(fill="x", pady=(0, 8))
-
-        portfolio_row = ttk.Frame(portfolio_lf)
-        portfolio_row.pack(fill="x", pady=(0, 4))
-        ttk.Label(portfolio_row, text="Портфолио:", width=10).pack(side="left")
-        self._portfolio_entry = ttk.Entry(portfolio_row)
-        self._portfolio_entry.pack(side="left", fill="x", expand=True)
-
-        crm_row = ttk.Frame(portfolio_lf)
-        crm_row.pack(fill="x")
-        ttk.Label(crm_row, text="CRM ID:", width=10).pack(side="left")
-        self._crm_entry = ttk.Entry(crm_row)
-        self._crm_entry.pack(side="left", fill="x", expand=True)
-
-        btn_row = ttk.Frame(portfolio_lf)
-        btn_row.pack(fill="x", pady=(6, 0))
-        ttk.Button(
-            btn_row, text="Сохранить информацию",
-            command=self._save_info,
-            style="Accent.TButton",
-        ).pack(side="right")
+        # Портфолио URL и CRM ID убраны в настройки ученика
 
 
         # Комментарий тьютора
@@ -279,16 +257,20 @@ class RosterTab(ttk.Frame):
         self._lbl_kib = ttk.Label(top_gami, text="Кибероны: 0 ₭", font=FONTS["title"])
         self._lbl_kib.pack(side="left")
         
-        ttk.Button(top_gami, text="- ₭", width=3, command=lambda: self._change_kiberons(-10)).pack(side="left", padx=(8, 2))
-        ttk.Button(top_gami, text="+ ₭", width=3, command=lambda: self._change_kiberons(10)).pack(side="left")
+        self._kib_entry = ttk.Entry(top_gami, width=5)
+        self._kib_entry.pack(side="left", padx=(8, 2))
+        ttk.Button(top_gami, text="± ₭", width=4, command=self._change_kiberons).pack(side="left")
+        ttk.Button(top_gami, text="История", command=self._show_kiberon_history, style="Ghost.TButton").pack(side="left", padx=4)
 
         ach_row = ttk.Frame(gami_lf)
         ach_row.pack(fill="x", pady=(8, 0))
         ttk.Label(ach_row, text="Достижения:").pack(side="left")
         ttk.Button(ach_row, text="Выдать ачивку", command=self._grant_achievement_dialog).pack(side="right")
         
-        self._ach_tree = ttk.Treeview(gami_lf, columns=("icon", "title", "xp"), show="tree", height=3)
-        self._ach_tree.column("#0", width=0, stretch=False)
+        self._ach_tree = ttk.Treeview(gami_lf, columns=("icon", "title", "xp"), show="headings", height=3)
+        self._ach_tree.heading("icon", text="")
+        self._ach_tree.heading("title", text="Название")
+        self._ach_tree.heading("xp", text="Награда")
         self._ach_tree.column("icon", width=30, anchor="center")
         self._ach_tree.column("title", width=150, stretch=True)
         self._ach_tree.column("xp", width=60, anchor="center")
@@ -302,13 +284,55 @@ class RosterTab(ttk.Frame):
     def _open_achievements(self) -> None:
         AchievementsDialog(self, self._api, self._groups)
 
-    def _change_kiberons(self, delta: int) -> None:
+    def _change_kiberons(self) -> None:
+        if not self._sel_student:
+            return
+            
+        try:
+            delta = int(self._kib_entry.get().strip())
+        except ValueError:
+            messagebox.showerror("Ошибка", "Введите корректное число киберонов", parent=self)
+            return
+            
+        reason = simpledialog.askstring("Причина", "За что?", parent=self)
+        if reason is None:
+            return
+            
+        sid = self._sel_student["id"]
+        res = self._api("POST", f"/roster/student/{sid}/kiberons", {"delta": delta, "reason": reason})
+        if res and res.get("ok"):
+            self._kib_entry.delete(0, "end")
+            self._load_student_card(sid)
+
+    def _show_kiberon_history(self) -> None:
         if not self._sel_student:
             return
         sid = self._sel_student["id"]
-        res = self._api("POST", f"/roster/student/{sid}/kiberons", {"delta": delta})
-        if res and res.get("ok"):
-            self._load_student_card(sid)
+        res = self._api("GET", f"/roster/student/{sid}/history")
+        if not res or not res.get("ok"):
+            return
+            
+        history = res.get("kiberon_history", [])
+        
+        top = tk.Toplevel(self)
+        top.title(f"История киберонов: {self._sel_student['last_name']}")
+        top.geometry("450x300")
+        
+        cols = ("date", "delta", "reason")
+        tree = ttk.Treeview(top, columns=cols, show="headings", selectmode="none")
+        tree.heading("date", text="Дата")
+        tree.heading("delta", text="Изменение")
+        tree.heading("reason", text="Причина")
+        tree.column("date", width=120)
+        tree.column("delta", width=80, anchor="center")
+        tree.column("reason", width=200, stretch=True)
+        tree.pack(fill="both", expand=True, padx=8, pady=8)
+        
+        for h in history:
+            import datetime
+            dt = datetime.datetime.fromtimestamp(h["created_at"]).strftime("%d.%m.%Y %H:%M")
+            delta_str = f"+{h['delta']} ₭" if h['delta'] > 0 else f"{h['delta']} ₭"
+            tree.insert("", "end", values=(dt, delta_str, h["reason"]))
 
     def _grant_achievement_dialog(self) -> None:
         if not self._sel_student: return
@@ -380,34 +404,65 @@ class RosterTab(ttk.Frame):
         self._load_students()
 
     def _add_group(self) -> None:
-        name = simpledialog.askstring("Новая группа", "Название группы:", parent=self)
-        if not name:
-            return
-        module = simpledialog.askstring("Новая группа", "Модуль (необязательно):", parent=self) or ""
-
-        def worker():
-            self._api("POST", "/roster/groups", {"name": name, "module": module})
-            self.after(0, self.reload_groups)
-
-        threading.Thread(target=worker, daemon=True).start()
+        self._open_group_form()
 
     def _edit_group(self) -> None:
         if not self._sel_group:
             return
-        name = simpledialog.askstring(
-            "Редактировать группу", "Название:", initialvalue=self._sel_group["name"], parent=self
+        self._open_group_form(self._sel_group)
+
+    def _open_group_form(self, group: dict | None = None) -> None:
+        is_edit = group is not None
+        top = tk.Toplevel(self)
+        top.title("Редактировать группу" if is_edit else "Новая группа")
+        top.geometry("400x350")
+        top.configure(bg=COLORS["surface"])
+        
+        form = tk.Frame(top, bg=COLORS["surface"], padx=16, pady=16)
+        form.pack(fill="both", expand=True)
+        
+        ttk.Label(form, text="Название:", style="TLabel").pack(anchor="w")
+        e_name = ttk.Entry(form)
+        e_name.insert(0, group["name"] if group else "")
+        e_name.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Модуль:", style="TLabel").pack(anchor="w")
+        e_module = ttk.Entry(form)
+        e_module.insert(0, group.get("module", "") if group else "")
+        e_module.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Темы уроков (через запятую):", style="TLabel").pack(anchor="w")
+        e_topics = tk.Text(
+            form, height=4, wrap="word",
+            font=FONTS["body"], bg=COLORS["surface"], fg=COLORS["ink"],
+            highlightthickness=1, highlightbackground=COLORS["border"]
         )
-        if not name:
-            return
-        module = simpledialog.askstring(
-            "Редактировать группу", "Модуль:", initialvalue=self._sel_group.get("module", ""), parent=self
-        ) or ""
-
-        def worker(gid):
-            self._api("POST", f"/roster/groups/{gid}", {"name": name, "module": module})
-            self.after(0, self.reload_groups)
-
-        threading.Thread(target=worker, args=(self._sel_group["id"],), daemon=True).start()
+        e_topics.insert("1.0", group.get("topics", "") if group else "")
+        e_topics.pack(fill="x", pady=(0, 12))
+        
+        def _save():
+            name = e_name.get().strip()
+            if not name:
+                messagebox.showerror("Ошибка", "Название обязательно", parent=top)
+                return
+                
+            payload = {
+                "name": name,
+                "module": e_module.get().strip(),
+                "topics": e_topics.get("1.0", "end").strip()
+            }
+            
+            def worker():
+                if is_edit:
+                    self._api("POST", f"/roster/groups/{group['id']}", payload)
+                else:
+                    self._api("POST", "/roster/groups", payload)
+                self.after(0, self.reload_groups)
+                self.after(0, top.destroy)
+                
+            threading.Thread(target=worker, daemon=True).start()
+            
+        ttk.Button(form, text="Сохранить" if is_edit else "Создать", command=_save, style="Accent.TButton").pack(pady=8)
 
     def _del_group(self) -> None:
         if not self._sel_group:
@@ -465,45 +520,79 @@ class RosterTab(ttk.Frame):
         if not self._sel_group:
             messagebox.showinfo("Выбери группу", "Сначала выбери группу слева.", parent=self)
             return
-        last = simpledialog.askstring("Новый ученик", "Фамилия:", parent=self)
-        if not last:
-            return
-        first = simpledialog.askstring("Новый ученик", "Имя:", parent=self)
-        if not first:
-            return
-        age_str = simpledialog.askstring("Новый ученик", "Возраст (или пропусти):", parent=self)
-        age = int(age_str) if age_str and age_str.isdigit() else None
-
-        def worker(gid):
-            self._api("POST", "/roster/students", {
-                "last_name": last, "first_name": first, "group_id": gid, "age": age
-            })
-            self.after(0, self._load_students)
-
-        threading.Thread(target=worker, args=(self._sel_group["id"],), daemon=True).start()
+        self._open_student_form()
 
     def _edit_student(self) -> None:
         if not self._sel_student:
             return
-        s = self._sel_student
-        last = simpledialog.askstring("Редактировать", "Фамилия:", initialvalue=s["last_name"], parent=self)
-        if not last:
-            return
-        first = simpledialog.askstring("Редактировать", "Имя:", initialvalue=s["first_name"], parent=self)
-        if not first:
-            return
-        age_str = simpledialog.askstring(
-            "Редактировать", "Возраст:", initialvalue=str(s.get("age") or ""), parent=self
-        )
-        age = int(age_str) if age_str and age_str.isdigit() else None
+        self._open_student_form(self._sel_student)
 
-        def worker(sid):
-            self._api("POST", f"/roster/students/{sid}", {
-                "last_name": last, "first_name": first, "age": age
-            })
-            self.after(0, self._load_students)
-
-        threading.Thread(target=worker, args=(s["id"],), daemon=True).start()
+    def _open_student_form(self, student: dict | None = None) -> None:
+        is_edit = student is not None
+        top = tk.Toplevel(self)
+        top.title("Редактировать ученика" if is_edit else "Новый ученик")
+        top.geometry("400x400")
+        top.configure(bg=COLORS["surface"])
+        
+        form = tk.Frame(top, bg=COLORS["surface"], padx=16, pady=16)
+        form.pack(fill="both", expand=True)
+        
+        ttk.Label(form, text="Фамилия:", style="TLabel").pack(anchor="w")
+        e_last = ttk.Entry(form)
+        e_last.insert(0, student["last_name"] if student else "")
+        e_last.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Имя:", style="TLabel").pack(anchor="w")
+        e_first = ttk.Entry(form)
+        e_first.insert(0, student["first_name"] if student else "")
+        e_first.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Возраст:", style="TLabel").pack(anchor="w")
+        e_age = ttk.Entry(form)
+        e_age.insert(0, str(student.get("age") or "") if student else "")
+        e_age.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="Портфолио (URL):", style="TLabel").pack(anchor="w")
+        e_port = ttk.Entry(form)
+        e_port.insert(0, student.get("portfolio_url", "") if student else "")
+        e_port.pack(fill="x", pady=(0, 12))
+        
+        ttk.Label(form, text="CRM ID:", style="TLabel").pack(anchor="w")
+        e_crm = ttk.Entry(form)
+        e_crm.insert(0, student.get("crm_id", "") if student else "")
+        e_crm.pack(fill="x", pady=(0, 12))
+        
+        def _save():
+            last = e_last.get().strip()
+            first = e_first.get().strip()
+            if not last or not first:
+                messagebox.showerror("Ошибка", "Фамилия и Имя обязательны", parent=top)
+                return
+                
+            age_str = e_age.get().strip()
+            age = int(age_str) if age_str.isdigit() else None
+            
+            payload = {
+                "last_name": last,
+                "first_name": first,
+                "age": age,
+                "portfolio_url": e_port.get().strip(),
+                "crm_id": e_crm.get().strip()
+            }
+            if not is_edit:
+                payload["group_id"] = self._sel_group["id"]
+                
+            def worker():
+                if is_edit:
+                    self._api("POST", f"/roster/students/{student['id']}", payload)
+                else:
+                    self._api("POST", "/roster/students", payload)
+                self.after(0, self._load_students)
+                self.after(0, top.destroy)
+                
+            threading.Thread(target=worker, daemon=True).start()
+            
+        ttk.Button(form, text="Сохранить" if is_edit else "Добавить", command=_save, style="Accent.TButton").pack(pady=8)
 
     def _del_student(self) -> None:
         if not self._sel_student:
@@ -549,16 +638,10 @@ class RosterTab(ttk.Frame):
 
         # Доп. инфа
         portfolio_url = student.get("portfolio_url") or ""
-        self._portfolio_entry.delete(0, "end")
-        self._portfolio_entry.insert(0, portfolio_url)
         if portfolio_url:
             self._portfolio_btn.configure(state="normal", cursor="hand2")
         else:
             self._portfolio_btn.configure(state="disabled")
-
-        crm_id = student.get("crm_id") or ""
-        self._crm_entry.delete(0, "end")
-        self._crm_entry.insert(0, crm_id)
 
         # Комментарий
         self._comment_box.configure(state="normal")

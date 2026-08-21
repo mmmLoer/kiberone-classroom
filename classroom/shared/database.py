@@ -79,6 +79,15 @@ CREATE INDEX IF NOT EXISTS idx_sessions_student ON sessions(student_id);
 CREATE INDEX IF NOT EXISTS idx_grades_student   ON grades(student_id);
 CREATE INDEX IF NOT EXISTS idx_grades_session   ON grades(session_id);
 CREATE INDEX IF NOT EXISTS idx_st_achievements  ON student_achievements(student_id);
+
+CREATE TABLE IF NOT EXISTS kiberon_history (
+    id          TEXT PRIMARY KEY,
+    student_id  TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    delta       INTEGER NOT NULL,
+    reason      TEXT NOT NULL DEFAULT '',
+    created_at  REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kiberon_history  ON kiberon_history(student_id);
 """
 
 _MIGRATIONS = [
@@ -90,6 +99,7 @@ _MIGRATIONS = [
     "ALTER TABLE students ADD COLUMN xp INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE students ADD COLUMN level INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE achievements ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT 0",
+    "ALTER TABLE groups ADD COLUMN topics TEXT NOT NULL DEFAULT ''",
 ]
 
 
@@ -183,23 +193,24 @@ class ClassroomDB:
     def get_group(self, group_id: str) -> dict | None:
         return self._one("SELECT * FROM groups WHERE id = ?", (group_id,))
 
-    def create_group(self, name: str, module: str = "") -> dict:
+    def create_group(self, name: str, module: str = "", topics: str = "") -> dict:
         gid = self._new_id()
         self._exec_commit(
-            "INSERT INTO groups (id, name, module, created_at) VALUES (?, ?, ?, ?)",
-            (gid, name.strip(), module.strip(), time.time()),
+            "INSERT INTO groups (id, name, module, topics, created_at) VALUES (?, ?, ?, ?, ?)",
+            (gid, name.strip(), module.strip(), topics.strip(), time.time()),
         )
         return self.get_group(gid)  # type: ignore[return-value]
 
-    def update_group(self, group_id: str, name: str | None = None, module: str | None = None) -> dict | None:
+    def update_group(self, group_id: str, name: str | None = None, module: str | None = None, topics: str | None = None) -> dict | None:
         group = self.get_group(group_id)
         if not group:
             return None
         new_name = (name or group["name"]).strip()
         new_module = (module if module is not None else group["module"]).strip()
+        new_topics = (topics if topics is not None else group.get("topics", "")).strip()
         self._exec_commit(
-            "UPDATE groups SET name = ?, module = ? WHERE id = ?",
-            (new_name, new_module, group_id),
+            "UPDATE groups SET name = ?, module = ?, topics = ? WHERE id = ?",
+            (new_name, new_module, new_topics, group_id),
         )
         return self.get_group(group_id)
 
@@ -339,14 +350,26 @@ class ClassroomDB:
 
     # ── gamification ──────────────────────────────────────────────────────────
 
-    def update_student_currency(self, student_id: str, kiberons_delta: int) -> dict | None:
+    def update_student_currency(self, student_id: str, kiberons_delta: int, reason: str = "Ручное начисление") -> dict | None:
         """Изменяет баланс киберонов."""
         s = self.get_student(student_id)
         if not s:
             return None
         new_balance = max(0, s["kiberons"] + kiberons_delta)
+        
         self._exec_commit("UPDATE students SET kiberons=? WHERE id=?", (new_balance, student_id))
+        
+        if kiberons_delta != 0:
+            hist_id = self._new_id()
+            self._exec_commit(
+                "INSERT INTO kiberon_history (id, student_id, delta, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+                (hist_id, student_id, kiberons_delta, reason, time.time())
+            )
+            
         return self.get_student(student_id)
+
+    def get_kiberon_history(self, student_id: str) -> list[dict]:
+        return self._rows("SELECT * FROM kiberon_history WHERE student_id=? ORDER BY created_at DESC", (student_id,))
 
     def add_student_xp(self, student_id: str, xp_delta: int) -> dict | None:
         """Добавляет XP и пересчитывает уровень (100 XP = 1 уровень)."""
