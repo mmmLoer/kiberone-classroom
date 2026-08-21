@@ -183,7 +183,7 @@ class StudentApp(tk.Tk):
 
         actions = ttk.Frame(root)
         actions.pack(fill="x", padx=4)
-        ttk.Button(actions, text="Подключиться", command=self.connect, style="Accent.TButton").pack(side="left")
+
         ttk.Button(actions, text="Синхронизировать", command=self.sync_now).pack(side="left", padx=8)
         ttk.Button(actions, text="Проверить обновления", command=self.check_updates).pack(side="left")
         ttk.Button(actions, text="Отключиться", command=self.disconnect, style="Ghost.TButton").pack(side="left", padx=8)

@@ -391,12 +391,21 @@ class StudentAgent:
         elif kind == "watchdog_on":
             self.watchdog_active = True
             try:
-                import subprocess
+                import subprocess, sys, os
                 from ..shared.constants import app_dir
+                exe_path = sys.executable
+                exe_name = os.path.basename(exe_path)
+                
                 bat_path = app_dir() / "watchdog.bat"
                 with open(bat_path, "w", encoding="utf-8") as f:
-                    f.write('@echo off\ntitle KIBERoneWatchdog\nsetlocal\nset _MEIPASS2=\nset _MEIPASS=\nset PYTHONPATH=\necho KIBERone Watchdog Started\necho Monitoring KIBERoneStudent.exe...\n\n:loop\ntasklist | find /i "KIBERoneStudent.exe" > nul\nif errorlevel 1 (\n    echo [%time%] KIBERoneStudent.exe not found! Restarting...\n    set KIBERONE_WATCHDOG_RECOVERED=1\n    start "" "KIBERoneStudent.exe"\n)\ntimeout /t 5 /nobreak > nul\ngoto loop\n')
-                subprocess.Popen(["cmd.exe", "/c", "watchdog.bat"], cwd=str(app_dir()), creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                    f.write(f'@echo off\ntitle KIBERoneWatchdog\nsetlocal\necho KIBERone Watchdog Started\necho Monitoring {exe_name}...\n\n:loop\ntasklist | find /i "{exe_name}" > nul\nif errorlevel 1 (\n    echo [%time%] {exe_name} not found! Restarting...\n    set KIBERONE_WATCHDOG_RECOVERED=1\n    start "" "{exe_path}"\n)\ntimeout /t 5 /nobreak > nul\ngoto loop\n')
+                
+                # Очищаем переменные окружения PyInstaller, чтобы не было ошибки загрузки DLL
+                env = os.environ.copy()
+                env.pop("_MEIPASS2", None)
+                env.pop("_MEIPASS", None)
+                env.pop("PYTHONPATH", None)
+                subprocess.Popen(["cmd.exe", "/c", "watchdog.bat"], cwd=str(app_dir()), env=env, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             except Exception as e:
                 self.log(f"Watchdog error: {e}")
             self.log("Watchdog ВКЛ")
