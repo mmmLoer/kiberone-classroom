@@ -22,7 +22,7 @@ from ..shared.identity import (
 )
 from ..shared.scripts import get_preset, load_scripts
 from ..shared.scrollable import ScrollableFrame
-from ..shared.theme import append_log, apply_theme, make_log
+from ..shared.theme import FONTS, append_log, apply_theme, make_log
 from .agent import StudentAgent
 from .login_screen import StudentLoginScreen
 
