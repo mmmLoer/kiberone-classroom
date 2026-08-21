@@ -391,21 +391,24 @@ class StudentAgent:
         elif kind == "watchdog_on":
             self.watchdog_active = True
             try:
-                import subprocess, sys, os
+                import subprocess, sys, os, tempfile
                 from ..shared.constants import app_dir
+                # В PyInstaller 1-file sys.executable указывает на оригинальный exe
                 exe_path = sys.executable
                 exe_name = os.path.basename(exe_path)
                 
-                bat_path = app_dir() / "watchdog.bat"
+                bat_dir = Path(tempfile.gettempdir())
+                bat_path = bat_dir / "kiberone_watchdog.bat"
                 with open(bat_path, "w", encoding="utf-8") as f:
                     f.write(f'@echo off\ntitle KIBERoneWatchdog\nsetlocal\necho KIBERone Watchdog Started\necho Monitoring {exe_name}...\n\n:loop\ntasklist | find /i "{exe_name}" > nul\nif errorlevel 1 (\n    echo [%time%] {exe_name} not found! Restarting...\n    set KIBERONE_WATCHDOG_RECOVERED=1\n    start "" "{exe_path}"\n)\ntimeout /t 5 /nobreak > nul\ngoto loop\n')
                 
-                # Очищаем переменные окружения PyInstaller, чтобы не было ошибки загрузки DLL
+                # Очищаем все переменные окружения PyInstaller и Python, чтобы не было конфликтов DLL
                 env = os.environ.copy()
-                env.pop("_MEIPASS2", None)
-                env.pop("_MEIPASS", None)
-                env.pop("PYTHONPATH", None)
-                subprocess.Popen(["cmd.exe", "/c", "watchdog.bat"], cwd=str(app_dir()), env=env, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                keys_to_remove = [k for k in env if k.upper().startswith("_MEI") or k.upper().startswith("PY") or k.upper().startswith("_PYI")]
+                for k in keys_to_remove:
+                    env.pop(k, None)
+                
+                subprocess.Popen(["cmd.exe", "/c", "kiberone_watchdog.bat"], cwd=str(bat_dir), env=env, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             except Exception as e:
                 self.log(f"Watchdog error: {e}")
             self.log("Watchdog ВКЛ")
