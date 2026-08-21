@@ -107,15 +107,6 @@ class StudentApp(tk.Tk):
         self.btn_change_student.configure(state="disabled")
         host = self.host_var.get().strip() or get_teacher_host("")
         self._show_login_screen(host)
-        
-        # Меняем папку на рабочем столе на имя ученика
-        new_folder = str(Path.home() / "Desktop" / student_name)
-        self.folder_var.set(new_folder)
-        set_watch_folder(new_folder)
-        self.log(f"Папка синхронизации: {new_folder}")
-
-        # Автоматически подключаемся
-        self.after(300, self.connect)
 
     def _build(self) -> None:
         header = ttk.Frame(self, style="Header.TFrame", padding=(18, 12))
@@ -713,7 +704,7 @@ class StudentApp(tk.Tk):
                 self.after(0, self.log, f"Проверка обновлений: {exc}")
                 self.after(
                     0,
-                    lambda: messagebox.showerror("Обновление", f"Не удалось проверить:\n{exc}"),
+                    lambda err=str(exc): messagebox.showerror("Обновление", f"Не удалось проверить:\n{err}"),
                 )
                 return
             if info:
@@ -766,7 +757,7 @@ class StudentApp(tk.Tk):
                 self.after(0, self.log, f"Ошибка обновления: {exc}")
                 self.after(
                     0,
-                    lambda: messagebox.showerror("Обновление", f"Не удалось скачать:\n{exc}"),
+                    lambda err=str(exc): messagebox.showerror("Обновление", f"Не удалось скачать:\n{err}"),
                 )
 
         threading.Thread(target=worker, daemon=True).start()

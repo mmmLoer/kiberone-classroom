@@ -270,7 +270,7 @@ class ClassroomStore:
         return files
 
     def save_upload(self, client_id: str, relative: str, data: bytes) -> Path:
-        from ..shared.versions import append_auto_commit, force_snapshot
+        from ..shared.versions import append_auto_commit
 
         root = self.client_root(client_id)
         relative = relative.replace("\\", "/")
