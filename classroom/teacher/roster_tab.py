@@ -350,12 +350,17 @@ class RosterTab(ttk.Frame):
         
         achs = res.get("achievements", [])
         if not achs:
-            messagebox.showinfo("Нет ачивок", "Сначала создайте хотя бы одну ачивку в управлении группами.", parent=self)
+            # Делаем отдельное модальное окно для предупреждения, чтобы 100% было поверх всего
+            messagebox.showinfo("Нет ачивок", "Сначала создайте хотя бы одну ачивку в окне '🏆 Ачивки' (в заголовке группы).", parent=self)
             return
             
         top = tk.Toplevel(self)
         top.title("Выдать ачивку")
         top.geometry("400x300")
+        top.transient(self)
+        top.grab_set()
+        top.focus_set()
+        
         listbox = tk.Listbox(top, font=FONTS["body"])
         listbox.pack(fill="both", expand=True, padx=8, pady=8)
         
