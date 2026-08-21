@@ -389,82 +389,112 @@ class StudentAgent:
             self._run_shell(payload)
         elif kind == "run_script":
             self._run_script(payload)
-
         elif kind == "focus_on":
             self.focus_mode_active = True
             self.log("Режим фокуса ВКЛ")
         elif kind == "focus_off":
             self.focus_mode_active = False
             self.log("Режим фокуса ВЫКЛ")
+
         elif kind == "watchdog_on":
             self.watchdog_active = True
             try:
                 import subprocess, sys, os, tempfile
-                # В PyInstaller 1-file sys.executable указывает на оригинальный exe
                 exe_path = sys.executable
                 exe_name = os.path.basename(exe_path)
-                sentinel = str(self._watchdog_sentinel)
 
                 bat_dir = Path(tempfile.gettempdir())
                 bat_path = bat_dir / "kiberone_watchdog.bat"
-                with open(bat_path, "w", encoding="utf-8") as f:
-                    # /B — запуск в том же окне, переменные окружения передаются дочернему процессу
-                    # Вместо этого пишем sentinel-файл (надёжнее cmd /B)
-                    f.write(
-                        f'@echo off\n'
-                        f'setlocal\n'
-                        f'echo KIBERone Watchdog Started\n'
-                        f'echo Monitoring {exe_name}...\n\n'
-                        f':loop\n'
-                        f'tasklist | find /i "{exe_name}" > nul\n'
-                        f'if errorlevel 1 (\n'
-                        f'    echo [%time%] {exe_name} not found! Restarting...\n'
-                        f'    echo 1 > "{sentinel}"\n'
-                        f'    start "" "{exe_path}"\n'
-                        f')\n'
-                        f'timeout /t 5 /nobreak > nul\n'
-                        f'goto loop\n'
-                    )
+                # Sentinel: watchdog пишет перед запуском программы → авто-логин
+                sentinel = str(self._watchdog_sentinel)
+                # Stop-файл: тьютор пишет его → watchdog видит и выходит
+                stop_file_path = bat_dir / "kiberone_watchdog_stop.flag"
+                stop_file = str(stop_file_path)
 
-                # Очищаем все переменные окружения PyInstaller и Python, чтобы не было конфликтов DLL
+                # Удаляем старый стоп-файл перед запуском
+                try:
+                    stop_file_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+                # bat проверяет стоп-файл в начале каждой итерации
+                # и каждую секунду во время ожидания
+                bat_content = (
+                    '@echo off\n'
+                    'setlocal\n'
+                    f'echo KIBERone Watchdog Started\n\n'
+                    ':loop\n'
+                    f'if exist "{stop_file}" (\n'
+                    f'    del /f /q "{stop_file}"\n'
+                    '    exit /b 0\n'
+                    ')\n'
+                    f'tasklist | find /i "{exe_name}" > nul\n'
+                    'if errorlevel 1 (\n'
+                    f'    if exist "{stop_file}" (\n'
+                    f'        del /f /q "{stop_file}"\n'
+                    '        exit /b 0\n'
+                    '    )\n'
+                    f'    echo 1 > "{sentinel}"\n'
+                    f'    start "" "{exe_path}"\n'
+                    ')\n'
+                    'for /l %%i in (1,1,5) do (\n'
+                    f'    if exist "{stop_file}" (\n'
+                    f'        del /f /q "{stop_file}"\n'
+                    '        exit /b 0\n'
+                    '    )\n'
+                    '    timeout /t 1 /nobreak > nul\n'
+                    ')\n'
+                    'goto loop\n'
+                )
+
+                with open(bat_path, "w", encoding="utf-8") as f:
+                    f.write(bat_content)
+
+                # Очищаем переменные PyInstaller чтобы не было конфликтов DLL
                 env = os.environ.copy()
-                keys_to_remove = [k for k in env if k.upper().startswith("_MEI") or k.upper().startswith("PY") or k.upper().startswith("_PYI")]
-                for k in keys_to_remove:
+                for k in [k for k in env if k.upper().startswith(("_MEI", "PY", "_PYI"))]:
                     env.pop(k, None)
 
                 proc = subprocess.Popen(
                     ["cmd.exe", "/c", str(bat_path)],
                     cwd=str(bat_dir),
                     env=env,
-                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
                 )
                 self._watchdog_pid = proc.pid
+                self._watchdog_stop_file = stop_file_path
             except Exception as e:
                 self.log(f"Watchdog error: {e}")
             self.log("Watchdog ВКЛ")
+
         elif kind == "watchdog_off":
             self.watchdog_active = False
             try:
-                import subprocess
+                import subprocess, tempfile
+
+                # ШАГ 1 (основной): пишем стоп-файл — bat увидит его за ≤1 сек и выйдет сам
+                stop_file_path = getattr(
+                    self, '_watchdog_stop_file',
+                    Path(tempfile.gettempdir()) / "kiberone_watchdog_stop.flag"
+                )
+                try:
+                    stop_file_path.write_text("stop", encoding="utf-8")
+                except Exception:
+                    pass
+
+                # ШАГ 2 (резерв): убиваем по сохранённому PID
                 pid = self._watchdog_pid
                 if pid:
-                    # Убиваем дерево процессов watchdog по PID (cmd.exe + дочерние)
                     subprocess.run(
                         ["taskkill", "/F", "/T", "/PID", str(pid)],
                         creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
                         capture_output=True,
                     )
                     self._watchdog_pid = None
-                else:
-                    # Fallback: ищем по имени bat-файла
-                    subprocess.run(
-                        ["wmic", "process", "where", "name='cmd.exe'", "get", "processid,commandline"],
-                        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
-                        capture_output=True,
-                    )
             except Exception:
                 pass
             self.log("Watchdog ВЫКЛ")
+
         elif kind == "notification":
             self.on_notification(payload)
         elif kind == "configure":
@@ -493,7 +523,6 @@ class StudentAgent:
                 set_pc_number(number)
                 self.log(f"Номер ПК изменён: {number}")
                 self.on_pc_number_changed(number)
-                # сразу сообщим тьютору новый номер
                 try:
                     self._heartbeat()
                 except Exception:
@@ -505,6 +534,8 @@ class StudentAgent:
             self.on_lock_screen()
         elif kind == "unlock_screen":
             self.on_unlock_screen()
+
+
 
     def fetch_starter_pack(self) -> list[dict]:
         result = self._request("GET", "/starter-pack", headers=self._headers(), timeout=20)
