@@ -826,7 +826,11 @@ class ClassroomServer:
                         icon = str(payload.get("icon") or "").strip()
                         xp = int(payload.get("xp_reward") or 0)
                         gids = payload.get("group_ids") or []
-                        ach = store.db.create_achievement(title, desc, icon, xp, gids)
+                        ach_id = payload.get("id")
+                        if ach_id:
+                            ach = store.db.update_achievement(ach_id, title, desc, icon, xp, gids)
+                        else:
+                            ach = store.db.create_achievement(title, desc, icon, xp, gids)
                         self._json(HTTPStatus.OK, {"ok": True, "achievement": ach})
                     return
 

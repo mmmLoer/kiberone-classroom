@@ -380,6 +380,32 @@ class ClassroomDB:
             row["group_ids"] = group_ids
         return row  # type: ignore[return-value]
 
+    def update_achievement(self, achievement_id: str, title: str | None = None, description: str | None = None, icon: str | None = None, xp_reward: int | None = None, group_ids: list[str] | None = None) -> dict | None:
+        ach = self._one("SELECT * FROM achievements WHERE id=?", (achievement_id,))
+        if not ach:
+            return None
+        
+        new_title = (title if title is not None else ach["title"]).strip()
+        new_desc = (description if description is not None else ach["description"]).strip()
+        new_icon = (icon if icon is not None else ach["icon"]).strip()
+        new_xp = xp_reward if xp_reward is not None else ach["xp_reward"]
+        
+        self._exec_commit(
+            "UPDATE achievements SET title=?, description=?, icon=?, xp_reward=? WHERE id=?",
+            (new_title, new_desc, new_icon, new_xp, achievement_id)
+        )
+        
+        if group_ids is not None:
+            self._exec_commit("DELETE FROM group_achievements WHERE achievement_id=?", (achievement_id,))
+            for gid in group_ids:
+                self._exec_commit("INSERT INTO group_achievements (group_id, achievement_id) VALUES (?, ?)", (gid, achievement_id))
+                
+        row = self._one("SELECT * FROM achievements WHERE id=?", (achievement_id,))
+        if row:
+            groups = self._rows("SELECT group_id FROM group_achievements WHERE achievement_id=?", (achievement_id,))
+            row["group_ids"] = [g["group_id"] for g in groups]
+        return row
+
     def delete_achievement(self, achievement_id: str) -> bool:
         cur = self._exec_commit("DELETE FROM achievements WHERE id=?", (achievement_id,))
         return cur.rowcount > 0

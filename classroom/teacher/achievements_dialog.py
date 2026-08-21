@@ -20,6 +20,7 @@ class AchievementsDialog(tk.Toplevel):
         toolbar = ttk.Frame(self, padding=8)
         toolbar.pack(fill="x")
         ttk.Button(toolbar, text="＋ Создать ачивку", command=self._add_ach).pack(side="left")
+        ttk.Button(toolbar, text="✎ Изменить", command=self._edit_ach).pack(side="left", padx=4)
         ttk.Button(toolbar, text="✕ Удалить", command=self._del_ach, style="Danger.TButton").pack(side="right")
         
         cols = ("title", "xp", "groups")
@@ -54,8 +55,21 @@ class AchievementsDialog(tk.Toplevel):
                 ))
 
     def _add_ach(self):
+        self._open_form()
+
+    def _edit_ach(self):
+        sel = self.tree.selection()
+        if not sel: return
+        ach_id = sel[0]
+        ach = next((a for a in self.achievements if a["id"] == ach_id), None)
+        if ach:
+            self._open_form(ach)
+
+    def _open_form(self, ach=None):
+        is_edit = ach is not None
+        
         top = tk.Toplevel(self)
-        top.title("Новая ачивка")
+        top.title("Редактировать ачивку" if is_edit else "Новая ачивка")
         top.geometry("400x450")
         top.configure(bg=COLORS["surface"])
         
@@ -64,27 +78,34 @@ class AchievementsDialog(tk.Toplevel):
         
         ttk.Label(form, text="Название:", style="TLabel").pack(anchor="w")
         e_title = ttk.Entry(form)
+        e_title.insert(0, ach["title"] if ach else "")
         e_title.pack(fill="x", pady=(0, 12))
         
         ttk.Label(form, text="Иконка (эмодзи):", style="TLabel").pack(anchor="w")
         e_icon = ttk.Entry(form)
-        e_icon.insert(0, "🏆")
+        e_icon.insert(0, ach.get("icon", "🏆") if ach else "🏆")
         e_icon.pack(fill="x", pady=(0, 12))
         
         ttk.Label(form, text="Награда (XP):", style="TLabel").pack(anchor="w")
         e_xp = ttk.Entry(form)
-        e_xp.insert(0, "50")
+        e_xp.insert(0, str(ach.get("xp_reward", 50)) if ach else "50")
         e_xp.pack(fill="x", pady=(0, 12))
         
-        ttk.Label(form, text="Доступно группам (оставь пустым для всех):", style="TLabel").pack(anchor="w", pady=(8,4))
+        is_secret = ach.get("is_secret") if ach else False
         
         group_vars = {}
-        g_frame = tk.Frame(form, bg=COLORS["surface"])
-        g_frame.pack(fill="x", pady=(0, 12))
-        for g in self.groups:
-            var = tk.BooleanVar(value=False)
-            group_vars[g["id"]] = var
-            ttk.Checkbutton(g_frame, text=g["name"], variable=var, style="TCheckbutton").pack(anchor="w")
+        if not is_secret:
+            ttk.Label(form, text="Доступно группам (оставь пустым для всех):", style="TLabel").pack(anchor="w", pady=(8,4))
+            g_frame = tk.Frame(form, bg=COLORS["surface"])
+            g_frame.pack(fill="x", pady=(0, 12))
+            
+            existing_gids = ach.get("group_ids", []) if ach else []
+            for g in self.groups:
+                var = tk.BooleanVar(value=(g["id"] in existing_gids))
+                group_vars[g["id"]] = var
+                ttk.Checkbutton(g_frame, text=g["name"], variable=var, style="TCheckbutton").pack(anchor="w")
+        else:
+            ttk.Label(form, text="(Секретная ачивка: выдается автоматически)", style="Muted.TLabel").pack(anchor="w", pady=12)
             
         def _save():
             title = e_title.get().strip()
@@ -98,23 +119,26 @@ class AchievementsDialog(tk.Toplevel):
             if not title:
                 return
                 
-            selected_groups = [gid for gid, var in group_vars.items() if var.get()]
+            selected_groups = [gid for gid, var in group_vars.items() if var.get()] if not is_secret else []
             
             payload = {
                 "title": title,
-                "description": "",
+                "description": ach.get("description", "") if ach else "",
                 "icon": icon,
                 "xp_reward": xp,
                 "group_ids": selected_groups
             }
+            if is_edit:
+                payload["id"] = ach["id"]
+                
             res = self.api("POST", "/roster/achievements", payload)
             if res and res.get("ok"):
                 self._reload()
                 top.destroy()
             else:
-                messagebox.showerror("Ошибка", "Не удалось создать.", parent=top)
+                messagebox.showerror("Ошибка", "Не удалось сохранить.", parent=top)
                 
-        ttk.Button(form, text="Создать", command=_save, style="Accent.TButton").pack(pady=8)
+        ttk.Button(form, text="Сохранить" if is_edit else "Создать", command=_save, style="Accent.TButton").pack(pady=8)
 
             
     def _del_ach(self):
