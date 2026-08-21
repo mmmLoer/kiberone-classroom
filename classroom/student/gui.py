@@ -98,6 +98,16 @@ class StudentApp(tk.Tk):
         self.btn_change_student.configure(state="normal")
         self.log(f"Вход выполнен: {student_name}")
         
+        # Меняем папку на рабочем столе на имя ученика
+        from pathlib import Path
+        new_folder = str(Path.home() / "Desktop" / student_name)
+        self.folder_var.set(new_folder)
+        from ..shared.settings import set_watch_folder
+        set_watch_folder(new_folder)
+        self.log(f"Папка синхронизации: {new_folder}")
+
+        # Автоматически подключаемся
+        self.after(300, self.connect)
     def change_student(self) -> None:
         self._student_id = ""
         self._session_id = ""
