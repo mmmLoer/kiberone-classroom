@@ -102,7 +102,6 @@ class StudentApp(tk.Tk):
         from pathlib import Path
         new_folder = str(Path.home() / "Desktop" / student_name)
         self.folder_var.set(new_folder)
-        from ..shared.settings import set_watch_folder
         set_watch_folder(new_folder)
         self.log(f"Папка синхронизации: {new_folder}")
 
