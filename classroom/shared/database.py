@@ -389,13 +389,13 @@ class ClassroomDB:
             a["group_ids"] = [g["group_id"] for g in groups]
         return achievements
 
-    def create_achievement(self, title: str, description: str = "", icon: str = "", xp_reward: int = 0, group_ids: list[str] = [], is_secret: bool = False) -> dict:
+    def create_achievement(self, title: str, description: str = "", icon: str = "", xp_reward: int = 0, group_ids: list[str] | None = None, is_secret: bool = False) -> dict:
         aid = self._new_id()
         self._exec_commit(
             "INSERT INTO achievements (id, title, description, icon, xp_reward, is_secret, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (aid, title.strip(), description.strip(), icon.strip(), xp_reward, is_secret, time.time())
         )
-        for gid in group_ids:
+        for gid in (group_ids or []):
             self._exec_commit("INSERT INTO group_achievements (group_id, achievement_id) VALUES (?, ?)", (gid, aid))
         
         row = self._one("SELECT * FROM achievements WHERE id=?", (aid,))
@@ -470,9 +470,3 @@ class ClassroomDB:
         cur = self._exec_commit("DELETE FROM student_achievements WHERE id=?", (student_achievement_id,))
         return cur.rowcount > 0
 
-    def get_kiberon_history(self, student_id: str) -> list[dict]:
-        """Возвращает историю начислений киберонов ученика."""
-        return self._rows(
-            "SELECT * FROM kiberon_history WHERE student_id = ? ORDER BY created_at DESC",
-            (student_id,)
-        )

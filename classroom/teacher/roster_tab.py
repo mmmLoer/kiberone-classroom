@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import threading
 import tkinter as tk
 import webbrowser
@@ -175,14 +176,11 @@ class RosterTab(ttk.Frame):
         tk.Button(
             card_btn_row,
             text="🏆 Выдать ачивку",
-            bg="#F59E0B", fg="#FFFFFF", # Оранжевый цвет для акцента
+            bg="#F59E0B", fg="#FFFFFF",
             font=FONTS["body"],
             relief="flat", padx=8, pady=3, cursor="hand2",
             command=self._grant_achievement_dialog,
         ).pack(side="left", padx=(8, 0))
-
-        # Портфолио URL и CRM ID убраны в настройки ученика
-
 
         # Комментарий тьютора
         comment_lf = ttk.LabelFrame(right_outer, text="Комментарий тьютора", padding=8)
@@ -246,6 +244,7 @@ class RosterTab(ttk.Frame):
 
         ttk.Label(grade_inner, text="Заметка:", style="TLabel").pack(side="left", padx=(14, 4))
         self._grade_note = ttk.Entry(grade_inner, width=18)
+        self._grade_note.pack(side="left")
         ttk.Button(
             grade_inner, text="Сохранить", command=self._save_grade, style="Accent.TButton"
         ).pack(side="left", padx=(8, 0))
@@ -338,61 +337,54 @@ class RosterTab(ttk.Frame):
         tree.pack(fill="both", expand=True, padx=8, pady=8)
         
         for h in history:
-            import datetime
             dt = datetime.datetime.fromtimestamp(h["created_at"]).strftime("%d.%m.%Y %H:%M")
             delta_str = f"+{h['delta']} ₭" if h['delta'] > 0 else f"{h['delta']} ₭"
             tree.insert("", "end", values=(dt, delta_str, h["reason"]))
 
     def _grant_achievement_dialog(self) -> None:
-        self._log("Открытие диалога выдачи ачивки...")
-        if not self._sel_student: 
-            self._log("Ошибка: ученик не выбран!")
+        if not self._sel_student:
             return
-            
-        res = self._api("GET", "/roster/achievements", None)
-        if not res or not res.get("ok"): 
-            self._log(f"Ошибка загрузки ачивок: {res}")
-            return
-        
-        achs = res.get("achievements", [])
-        self._log(f"Загружено ачивок: {len(achs)}")
-            
-        try:
-            top = tk.Toplevel(self.winfo_toplevel())
-            top.title("Выдать ачивку")
-            top.geometry("400x300")
-            
-            # Жёсткий способ вывести окно поверх всех (на маке transient часто глючит)
-            top.attributes('-topmost', True)
-            top.lift()
-            top.focus_force()
-            
-            if not achs:
-                lbl = ttk.Label(top, text="У вас пока нет созданных ачивок!\n\nСначала создайте хотя бы одну ачивку\nв окне '🏆 Ачивки' (в заголовке списка групп).", justify="center", font=FONTS["body"])
-                lbl.pack(expand=True)
-                ttk.Button(top, text="Понятно", command=top.destroy).pack(pady=16)
-                self._log("Показано окно 'Нет ачивок'.")
-                return
 
-            listbox = tk.Listbox(top, font=FONTS["body"])
-            listbox.pack(fill="both", expand=True, padx=8, pady=8)
-            
-            for a in achs:
-                listbox.insert("end", f"{a.get('icon', '')} {a.get('title', '')} (+{a.get('xp_reward', 0)} XP)")
-                
-            def _grant():
-                sel = listbox.curselection()
-                if not sel: return
-                ach_id = achs[sel[0]]["id"]
-                self._log(f"Выдаём ачивку {ach_id} ученику...")
-                self._api("POST", f"/roster/student/{self._sel_student['id']}/achievements", {"achievement_id": ach_id})
-                top.destroy()
-                self._load_student_card(self._sel_student["id"])
-                
-            ttk.Button(top, text="Выдать", command=_grant, style="Accent.TButton").pack(pady=8)
-            self._log("Диалог успешно отрисован.")
-        except Exception as e:
-            self._log(f"КРИТИЧЕСКАЯ ОШИБКА интерфейса: {e}")
+        res = self._api("GET", "/roster/achievements", None)
+        if not res or not res.get("ok"):
+            messagebox.showerror("Ошибка", "Не удалось загрузить список ачивок", parent=self)
+            return
+
+        achs = res.get("achievements", [])
+
+        top = tk.Toplevel(self.winfo_toplevel())
+        top.title("Выдать ачивку")
+        top.geometry("400x300")
+        top.attributes('-topmost', True)
+        top.lift()
+        top.focus_force()
+
+        if not achs:
+            lbl = ttk.Label(
+                top,
+                text="У вас пока нет созданных ачивок!\n\nСначала создайте хотя бы одну ачивку\nв окне '🏆 Ачивки'.",
+                justify="center", font=FONTS["body"]
+            )
+            lbl.pack(expand=True)
+            ttk.Button(top, text="Понятно", command=top.destroy).pack(pady=16)
+            return
+
+        listbox = tk.Listbox(top, font=FONTS["body"])
+        listbox.pack(fill="both", expand=True, padx=8, pady=8)
+
+        for a in achs:
+            listbox.insert("end", f"{a.get('icon', '')} {a.get('title', '')} (+{a.get('xp_reward', 0)} XP)")
+
+        def _grant():
+            sel = listbox.curselection()
+            if not sel:
+                return
+            ach_id = achs[sel[0]]["id"]
+            self._api("POST", f"/roster/student/{self._sel_student['id']}/achievements", {"achievement_id": ach_id})
+            top.destroy()
+            self._load_student_card(self._sel_student["id"])
+
+        ttk.Button(top, text="Выдать", command=_grant, style="Accent.TButton").pack(pady=8)
 
     def _revoke_achievement(self) -> None:
         if not self._sel_student: return
@@ -718,7 +710,6 @@ class RosterTab(ttk.Frame):
     def _clear_card(self) -> None:
         self._card_name.configure(text="Выбери ученика")
         self._card_meta.configure(text="")
-        self._portfolio_entry.delete(0, "end")
         self._portfolio_btn.configure(state="disabled")
         self._comment_box.configure(state="normal")
         self._comment_box.delete("1.0", "end")
@@ -737,32 +728,10 @@ class RosterTab(ttk.Frame):
 
     # ── actions ────────────────────────────────────────────────────────────
 
-    def _save_info(self) -> None:
+    def _open_portfolio(self) -> None:
         if not self._sel_student:
             return
-        url = self._portfolio_entry.get().strip()
-        crm = self._crm_entry.get().strip()
-        res = self._api(
-            "POST",
-            f"/roster/students/{self._sel_student['id']}",
-            {"portfolio_url": url, "crm_id": crm},
-        )
-        if res and res.get("ok"):
-            self.reload_students()
-            self._load_student_card(self._sel_student["id"])
-
-    def _on_portfolio_saved(self, url: str) -> None:
-        self._log(f"Портфолио сохранено: {url or '(очищено)'}")
-        if url:
-            self._portfolio_btn.configure(state="normal", cursor="hand2")
-        else:
-            self._portfolio_btn.configure(state="disabled")
-        # Обновляем локальный кэш
-        if self._sel_student:
-            self._sel_student["portfolio_url"] = url
-
-    def _open_portfolio(self) -> None:
-        url = self._portfolio_entry.get().strip()
+        url = (self._sel_student.get("portfolio_url") or "").strip()
         if not url:
             return
         if not url.startswith(("http://", "https://")):

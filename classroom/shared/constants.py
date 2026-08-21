@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "KIBERone Classroom"
-APP_VERSION = "1.3.17"
+APP_VERSION = "1.3.18"
 DEFAULT_PORT = 8765
 DISCOVERY_PORT = 8766
 DEFAULT_TOKEN = "kiberone-sync-2026"

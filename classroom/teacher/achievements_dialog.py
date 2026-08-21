@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import messagebox, ttk
 from typing import Callable
+
 from ..shared.theme import COLORS, FONTS
 
 class AchievementsDialog(tk.Toplevel):

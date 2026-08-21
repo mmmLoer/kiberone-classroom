@@ -237,14 +237,27 @@ class ClassroomStore:
         client_id = safe_client_id(client_id)
         with self.lock:
             own = self.pending.pop(client_id, [])
-            broadcast = list(self.broadcast_pending)
-            self.broadcast_pending.clear()
-            commands = own + [cmd for cmd in broadcast if cmd.client_id == "__all__"]
+            # Broadcasts: each command tracks which clients already received it
+            broadcasts = []
+            for cmd in self.broadcast_pending:
+                delivered = cmd.payload.get("_delivered_to") or set()
+                if client_id not in delivered:
+                    delivered.add(client_id)
+                    # store the tracking set back (payload is a shared dict)
+                    cmd.payload["_delivered_to"] = delivered
+                    broadcasts.append(cmd)
+            # Clean up broadcasts delivered to all known clients
+            all_clients = set(self.clients.keys())
+            self.broadcast_pending = [
+                cmd for cmd in self.broadcast_pending
+                if not all_clients.issubset(cmd.payload.get("_delivered_to") or set())
+            ]
+            commands = own + broadcasts
             return [
                 {
                     "command_id": cmd.command_id,
                     "kind": cmd.kind,
-                    "payload": cmd.payload,
+                    "payload": {k: v for k, v in cmd.payload.items() if k != "_delivered_to"},
                 }
                 for cmd in commands
             ]

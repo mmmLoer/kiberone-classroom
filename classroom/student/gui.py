@@ -8,7 +8,7 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 from ..shared.branding import place_header_logo
-from ..shared.constants import APP_NAME, APP_VERSION, DEFAULT_PORT, DEFAULT_TOKEN, app_dir
+from ..shared.constants import APP_NAME, APP_VERSION, DEFAULT_PORT, DEFAULT_TOKEN, app_dir, desktop_dir
 from ..shared.discovery import discover_teacher
 from ..shared.identity import (
     client_label,
@@ -94,7 +94,6 @@ class StudentApp(tk.Tk):
             result = try_auto_login(host)
             self.after(0, self._on_auto_login_result, result, host)
 
-        import threading
         threading.Thread(target=_try_auto, daemon=True).start()
 
     def _on_auto_login_result(self, result: tuple | None, host: str) -> None:
@@ -123,8 +122,7 @@ class StudentApp(tk.Tk):
         self.log(f"Вход выполнен: {student_name}")
         
         # Меняем папку на рабочем столе на имя ученика
-        from pathlib import Path
-        new_folder = str(Path.home() / "Desktop" / student_name)
+        new_folder = str(desktop_dir() / student_name)
         self.folder_var.set(new_folder)
         set_watch_folder(new_folder)
         self.log(f"Папка синхронизации: {new_folder}")
@@ -151,7 +149,6 @@ class StudentApp(tk.Tk):
             except Exception:
                 pass
 
-        import threading
         threading.Thread(target=worker, daemon=True).start()
         self.after(15000, self._refresh_progress_loop)
 
@@ -232,13 +229,13 @@ class StudentApp(tk.Tk):
 
         self.progress_frame = ttk.Frame(root, style="Surface.TFrame")
         self.progress_frame.pack(fill="x", padx=4, pady=(0, 12))
-        self.lbl_kiberons = ttk.Label(self.progress_frame, text="0 ₭", font=("Segoe UI", 12, "bold"), foreground="#FBBF24")
+        self.lbl_kiberons = ttk.Label(self.progress_frame, text="0 ₭", font=(FONTS["body"][0], FONTS["body"][1] + 2, "bold"), foreground="#FBBF24")
         self.lbl_kiberons.pack(side="left")
-        self.lbl_level = ttk.Label(self.progress_frame, text=" | Ур. 1", font=("Segoe UI", 12))
+        self.lbl_level = ttk.Label(self.progress_frame, text=" | Ур. 1", font=FONTS["body"])
         self.lbl_level.pack(side="left")
         self.lbl_xp = ttk.Label(self.progress_frame, text=" (0 XP)", style="Muted.TLabel")
         self.lbl_xp.pack(side="left")
-        self.lbl_achievements = ttk.Label(self.progress_frame, text="", font=("Segoe UI", 12))
+        self.lbl_achievements = ttk.Label(self.progress_frame, text="", font=FONTS["body"])
         self.lbl_achievements.pack(side="left", padx=(12, 0))
 
         actions = ttk.Frame(root)
@@ -276,7 +273,7 @@ class StudentApp(tk.Tk):
 
         pack_btns = ttk.Frame(setup, style="Surface.TFrame")
         pack_btns.pack(fill="x", pady=(0, 8))
-        ttk.Button(pack_btns, text="Обновить список", command=self.refresh_starter_pack).pack(side="left")
+        ttk.Button(pack_btns, text="Обновить список", command=lambda: self.refresh_starter_pack(show_error=True)).pack(side="left")
         ttk.Button(
             pack_btns,
             text="Скачать и установить выбранное",
@@ -398,8 +395,8 @@ class StudentApp(tk.Tk):
         
         # XP Bar
         xp = student.get('xp', 0)
-        next_lvl_xp = student.get('level', 1) * 100
-        xp_pct = min(100, int((xp % 100) / 100 * 100)) if xp else 0
+        xp_in_level = xp % 100
+        xp_pct = xp_in_level  # 0-100 percent
         
         progress_frame = tk.Frame(header, bg="#1E293B")
         progress_frame.pack(fill="x", padx=40, pady=(12, 0))
@@ -1064,10 +1061,10 @@ class StudentApp(tk.Tk):
             style="Ghost.TButton",
         ).pack(fill="x", pady=3)
 
-    def refresh_starter_pack(self) -> None:
-
+    def refresh_starter_pack(self, show_error: bool = False) -> None:
         if not self.agent:
-            messagebox.showinfo("Сначала подключись", "Подключись к тьютору, чтобы увидеть стартовый пак.")
+            if show_error:
+                messagebox.showinfo("Сначала подключись", "Подключись к тьютору, чтобы увидеть стартовый пак.")
             return
 
         def worker() -> None:
