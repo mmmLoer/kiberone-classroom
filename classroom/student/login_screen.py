@@ -47,6 +47,44 @@ def _save_prefs(prefs: dict) -> None:
         pass
 
 
+def try_auto_login(
+    teacher_host: str,
+    port: int = DEFAULT_PORT,
+    token: str = DEFAULT_TOKEN,
+) -> tuple[str, str, str] | None:
+    """Пробует тихий автовход если в prefs есть student_id.
+
+    Возвращает (student_id, session_id, student_display) или None.
+    Используется когда сторож перезапустил программу и нужно восстановить сессию.
+    """
+    prefs = _load_prefs()
+    student_id = prefs.get("student_id", "")
+    student_display = prefs.get("student_display", "")
+    topic = prefs.get("topic", "")
+    if not student_id or not student_display:
+        return None
+    try:
+        base = f"http://{teacher_host}:{port}"
+        result = http_request(
+            "POST",
+            f"{base}/roster/checkin",
+            data=json.dumps({
+                "student_id": student_id,
+                "topic": topic,
+                "pc_number": get_pc_number(),
+            }).encode("utf-8"),
+            headers={"X-Sync-Token": token, "Content-Type": "application/json"},
+            timeout=8,
+        )
+        if isinstance(result, dict) and result.get("ok"):
+            session = result.get("session") or {}
+            session_id = session.get("id", "")
+            return student_id, session_id, student_display
+    except Exception:
+        pass
+    return None
+
+
 class StudentLoginScreen(tk.Toplevel):
     """
     Окно выбора ученика перед началом занятия.
@@ -297,6 +335,7 @@ class StudentLoginScreen(tk.Toplevel):
         _save_prefs({
             "group_name": group_name,
             "student_display": student_display,
+            "student_id": student_id,
             "topic": topic,
         })
 

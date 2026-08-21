@@ -469,3 +469,10 @@ class ClassroomDB:
         """Удаляет выданную ачивку у ученика (XP не отнимаем, это сложнее трекать и обычно не нужно)."""
         cur = self._exec_commit("DELETE FROM student_achievements WHERE id=?", (student_achievement_id,))
         return cur.rowcount > 0
+
+    def get_kiberon_history(self, student_id: str) -> list[dict]:
+        """Возвращает историю начислений киберонов ученика."""
+        return self._rows(
+            "SELECT * FROM kiberon_history WHERE student_id = ? ORDER BY created_at DESC",
+            (student_id,)
+        )

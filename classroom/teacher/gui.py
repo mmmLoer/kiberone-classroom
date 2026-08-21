@@ -329,7 +329,25 @@ class TeacherApp(tk.Tk):
         if active_group:
             group_students = self.server.store.db.list_students(active_group["id"])
 
-        self.clients = self.server.store.list_clients()
+        all_clients = self.server.store.list_clients()
+
+        # ── Дедупликация: если один ученик подключен с нескольких client_id,
+        #    оставляем только запись с самым свежим last_seen ─────────────────
+        deduped: dict[str, dict] = {}  # client_id → client (для ПК без ученика)
+        student_best: dict[str, dict] = {}  # student_id → лучший клиент
+        for client in all_clients:
+            sid = client.get("student_id")
+            if sid:
+                prev = student_best.get(sid)
+                if prev is None or client.get("last_seen", 0) > prev.get("last_seen", 0):
+                    student_best[sid] = client
+            else:
+                deduped[client["client_id"]] = client
+
+        # Итоговый список: ПК без ученика + по одному лучшему на каждого ученика
+        self.clients = list(deduped.values()) + list(student_best.values())
+        self.clients.sort(key=lambda c: (c.get("pc_number") or "999", c.get("client_id", "")))
+
         selected = set(self.tree.selection())
         for item in self.tree.get_children():
             self.tree.delete(item)

@@ -49,6 +49,9 @@ class StudentApp(tk.Tk):
         self._student_id: str = ""
         self._session_id: str = ""
         self._student_name: str = ""
+        self.host_var = tk.StringVar()
+        self.pc_var = tk.StringVar()
+        self.folder_var = tk.StringVar()
 
         self._build()
         self._load_fields()
@@ -82,12 +85,31 @@ class StudentApp(tk.Tk):
             self.status_label.configure(style="StatusWarn.TLabel")
 
     def _show_login_screen(self, host: str) -> None:
-        StudentLoginScreen(
-            self,
-            teacher_host=host,
-            on_login=self._on_student_login,
-            on_skip=lambda: self.log("Отработка без учётной записи."),
-        )
+        # Сначала пробуем тихий автовход (работает когда сторож перезапустил программу)
+        self.log("Проверяю последний сеанс…")
+        self.status_var.set("Автовход…")
+
+        def _try_auto() -> None:
+            from .login_screen import try_auto_login
+            result = try_auto_login(host)
+            self.after(0, self._on_auto_login_result, result, host)
+
+        import threading
+        threading.Thread(target=_try_auto, daemon=True).start()
+
+    def _on_auto_login_result(self, result: tuple | None, host: str) -> None:
+        if result:
+            student_id, session_id, student_display = result
+            self.log(f"Автовход: {student_display}")
+            self._on_student_login(student_id, session_id, student_display)
+        else:
+            # Нет сохранённого сеанса — показываем обычный экран входа
+            StudentLoginScreen(
+                self,
+                teacher_host=host,
+                on_login=self._on_student_login,
+                on_skip=lambda: self.log("Отработка без учётной записи."),
+            )
 
     def _on_student_login(self, student_id: str, session_id: str, student_name: str) -> None:
         self._student_id = student_id
@@ -108,6 +130,41 @@ class StudentApp(tk.Tk):
         # Автоматически подключаемся
         self.log("Запуск автоматического подключения...")
         self.after(300, lambda: self.connect(blocking=False))
+        self._refresh_progress_loop()
+
+    def _refresh_progress_loop(self) -> None:
+        if not self._student_id or not self.agent:
+            self.after(5000, self._refresh_progress_loop)
+            return
+
+        def worker():
+            import urllib.request, json
+            try:
+                req = urllib.request.Request(f"{self.agent.base_url}/roster/student/{self._student_id}")
+                req.add_header("X-Sync-Token", self.agent.token)
+                with urllib.request.urlopen(req, timeout=5.0) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                if data.get("ok"):
+                    self.after(0, self._update_progress_ui, data)
+            except Exception:
+                pass
+
+        import threading
+        threading.Thread(target=worker, daemon=True).start()
+        self.after(15000, self._refresh_progress_loop)
+
+    def _update_progress_ui(self, data: dict) -> None:
+        st = data.get("student") or {}
+        ach = data.get("achievements") or []
+        
+        self.lbl_kiberons.configure(text=f"{st.get('kiberons', 0)} ₭")
+        self.lbl_level.configure(text=f" | Ур. {st.get('level', 1)}")
+        self.lbl_xp.configure(text=f" ({st.get('xp', 0)} XP)")
+        
+        icons = " ".join(a.get("icon", "") for a in ach[:5])
+        if len(ach) > 5:
+            icons += " ..."
+        self.lbl_achievements.configure(text=icons)
 
     def change_student(self) -> None:
         self._student_id = ""
@@ -116,8 +173,19 @@ class StudentApp(tk.Tk):
         self._subtitle_var.set(f"Подключение к тьютору · v{APP_VERSION}")
         self.btn_profile.configure(state="disabled", style="TButton")
         self.btn_change_student.configure(state="disabled")
+        # Очищаем сохранённый student_id чтобы автовход не восстанавливал старого ученика
+        from .login_screen import _load_prefs, _save_prefs
+        prefs = _load_prefs()
+        prefs.pop("student_id", None)
+        _save_prefs(prefs)
         host = self.host_var.get().strip() or get_teacher_host("")
         self._show_login_screen(host)
+
+    def open_settings(self) -> None:
+        from .settings_window import StudentSettings
+        win = StudentSettings(self)
+        win.transient(self)
+        win.grab_set()
 
     def _build(self) -> None:
         header = ttk.Frame(self, style="Header.TFrame", padding=(18, 12))
@@ -138,6 +206,8 @@ class StudentApp(tk.Tk):
         
         self.btn_change_student = ttk.Button(header, text="Сменить ученика", command=self.change_student, state="disabled")
         self.btn_change_student.pack(side="right")
+        
+        ttk.Button(header, text="⚙", width=3, command=self.open_settings, style="Ghost.TButton").pack(side="right", padx=8)
 
 
         paned = ttk.Panedwindow(self, orient="vertical")
@@ -152,40 +222,28 @@ class StudentApp(tk.Tk):
         scroll.pack(fill="both", expand=True)
         root = scroll.inner
 
-        card = ttk.LabelFrame(root, text="Настройки", padding=12)
-        card.pack(fill="x", padx=4, pady=(0, 8))
 
-        ttk.Label(card, text="IP тьютора", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 4))
-        host_row = ttk.Frame(card, style="Surface.TFrame")
-        host_row.grid(row=1, column=0, sticky="ew", pady=(0, 8))
-        self.host_var = tk.StringVar()
-        ttk.Entry(host_row, textvariable=self.host_var).pack(side="left", fill="x", expand=True)
-        ttk.Button(host_row, text="Найти в сети", command=self.find_teacher, style="Ghost.TButton").pack(
-            side="left", padx=(8, 0)
-        )
-
-        ttk.Label(card, text="Номер ПК", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=(0, 4))
-        self.pc_var = tk.StringVar()
-        ttk.Entry(card, textvariable=self.pc_var).grid(row=3, column=0, sticky="ew", pady=(0, 8))
-
-        ttk.Label(card, text="Папка синхронизации", style="Surface.TLabel").grid(row=4, column=0, sticky="w", pady=(0, 4))
-        self.folder_var = tk.StringVar()
-        ttk.Entry(card, textvariable=self.folder_var).grid(row=5, column=0, sticky="ew", pady=(0, 8))
-
-        ttk.Label(card, text="ID компьютера", style="Surface.TLabel").grid(row=6, column=0, sticky="w", pady=(0, 4))
-        ttk.Label(card, text=self.client_id, style="Mono.TLabel").grid(row=7, column=0, sticky="w")
-        card.columnconfigure(0, weight=1)
 
         self.status_var = tk.StringVar(value="Не подключено")
         self.status_label = ttk.Label(root, textvariable=self.status_var, style="StatusWarn.TLabel")
         self.status_label.pack(anchor="w", padx=4, pady=(4, 8))
+
+        self.progress_frame = ttk.Frame(root, style="Surface.TFrame")
+        self.progress_frame.pack(fill="x", padx=4, pady=(0, 12))
+        self.lbl_kiberons = ttk.Label(self.progress_frame, text="0 ₭", font=("Segoe UI", 12, "bold"), foreground="#FBBF24")
+        self.lbl_kiberons.pack(side="left")
+        self.lbl_level = ttk.Label(self.progress_frame, text=" | Ур. 1", font=("Segoe UI", 12))
+        self.lbl_level.pack(side="left")
+        self.lbl_xp = ttk.Label(self.progress_frame, text=" (0 XP)", style="Muted.TLabel")
+        self.lbl_xp.pack(side="left")
+        self.lbl_achievements = ttk.Label(self.progress_frame, text="", font=("Segoe UI", 12))
+        self.lbl_achievements.pack(side="left", padx=(12, 0))
 
         actions = ttk.Frame(root)
         actions.pack(fill="x", padx=4)
 
         ttk.Button(actions, text="Синхронизировать", command=self.sync_now).pack(side="left", padx=8)
         ttk.Button(actions, text="Проверить обновления", command=self.check_updates).pack(side="left")
-        ttk.Button(actions, text="Отключиться", command=self.disconnect, style="Ghost.TButton").pack(side="left", padx=8)
 
         scripts = ttk.LabelFrame(root, text="Скрипт запуска", padding=12)
         scripts.pack(fill="x", padx=4, pady=(12, 0))
