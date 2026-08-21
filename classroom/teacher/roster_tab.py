@@ -172,6 +172,15 @@ class RosterTab(ttk.Frame):
             command=self._open_folder,
         ).pack(side="left", padx=(8, 0))
 
+        tk.Button(
+            card_btn_row,
+            text="🏆 Выдать ачивку",
+            bg="#F59E0B", fg="#FFFFFF", # Оранжевый цвет для акцента
+            font=FONTS["body"],
+            relief="flat", padx=8, pady=3, cursor="hand2",
+            command=self._grant_achievement_dialog,
+        ).pack(side="left", padx=(8, 0))
+
         # Портфолио URL и CRM ID убраны в настройки ученика
 
 
