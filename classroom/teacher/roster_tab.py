@@ -317,7 +317,7 @@ class RosterTab(ttk.Frame):
         if not self._sel_student:
             return
         sid = self._sel_student["id"]
-        res = self._api("GET", f"/roster/student/{sid}/history")
+        res = self._api("GET", f"/roster/student/{sid}/history", None)
         if not res or not res.get("ok"):
             return
             
@@ -349,7 +349,7 @@ class RosterTab(ttk.Frame):
             self._log("Ошибка: ученик не выбран!")
             return
             
-        res = self._api("GET", "/roster/achievements")
+        res = self._api("GET", "/roster/achievements", None)
         if not res or not res.get("ok"): 
             self._log(f"Ошибка загрузки ачивок: {res}")
             return
