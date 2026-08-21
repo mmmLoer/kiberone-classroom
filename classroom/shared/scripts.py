@@ -61,6 +61,57 @@ echo DONE!
 """
 
 
+SHB_NEW_SCRIPT = r"""@echo off
+chcp 65001 > nul
+
+:: 1. Clear Proxy
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f > nul
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer /f > nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v AutoDetect /t REG_DWORD /d 0 /f > nul
+
+:: 2. Set WiFi Variables
+set "SSID=KIBERONE-5G"
+set "PASSWORD=kiberkiber"
+set "XML_PATH=%TEMP%\wifi_profile.xml"
+
+:: 3. Create XML Profile
+echo ^<?xml version="1.0"?^> > "%XML_PATH%"
+echo ^<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"^> >> "%XML_PATH%"
+echo     ^<name^>%SSID%^</name^> >> "%XML_PATH%"
+echo     ^<SSIDConfig^> >> "%XML_PATH%"
+echo         ^<SSID^> >> "%XML_PATH%"
+echo             ^<name^>%SSID%^</name^> >> "%XML_PATH%"
+echo         ^</SSID^> >> "%XML_PATH%"
+echo     ^</SSIDConfig^> >> "%XML_PATH%"
+echo     ^<connectionType^>ESS^</connectionType^> >> "%XML_PATH%"
+echo     ^<connectionMode^>auto^</connectionMode^> >> "%XML_PATH%"
+echo     ^<MSM^> >> "%XML_PATH%"
+echo         ^<security^> >> "%XML_PATH%"
+echo             ^<authEncryption^> >> "%XML_PATH%"
+echo                 ^<authentication^>WPA2PSK^</authentication^> >> "%XML_PATH%"
+echo                 ^<encryption^>AES^</encryption^> >> "%XML_PATH%"
+echo                 ^<useOneX^>false^</useOneX^> >> "%XML_PATH%"
+echo             ^</authEncryption^> >> "%XML_PATH%"
+echo             ^<sharedKey^> >> "%XML_PATH%"
+echo                 ^<keyType^>passPhrase^</keyType^> >> "%XML_PATH%"
+echo                 ^<protected^>false^</protected^> >> "%XML_PATH%"
+echo                 ^<keyMaterial^>%PASSWORD%^</keyMaterial^> >> "%XML_PATH%"
+echo             ^</sharedKey^> >> "%XML_PATH%"
+echo         ^</security^> >> "%XML_PATH%"
+echo     ^</MSM^> >> "%XML_PATH%"
+echo ^</WLANProfile^> >> "%XML_PATH%"
+
+:: 4. Add Profile and Connect
+netsh wlan add profile filename="%XML_PATH%" user=all > nul
+netsh wlan connect name="%SSID%"
+
+:: 5. Clean up
+del "%XML_PATH%"
+
+echo DONE!
+"""
+
+
 def _scripts_path() -> Path:
     return config_path("scripts.json")
 
@@ -78,7 +129,14 @@ def default_presets() -> list[dict]:
             "kind": "bat",
             "builtin": True,
             "content": SHB_SCRIPT,
-        }
+        },
+        {
+            "id": "shb_new",
+            "name": "ШБ new",
+            "kind": "bat",
+            "builtin": True,
+            "content": SHB_NEW_SCRIPT,
+        },
     ]
 
 
@@ -93,14 +151,17 @@ def _normalize_preset(item: dict) -> dict | None:
     content = str(item.get("content") or "")
     if item.get("builtin") and preset_id == "shb" and not content.strip():
         content = SHB_SCRIPT
+    if item.get("builtin") and preset_id == "shb_new" and not content.strip():
+        content = SHB_NEW_SCRIPT
     if not content.strip() and not item.get("builtin"):
         return None
+    _fallback = SHB_NEW_SCRIPT if preset_id == "shb_new" else (SHB_SCRIPT if preset_id == "shb" else content)
     return {
         "id": preset_id,
         "name": name,
         "kind": kind,
         "builtin": bool(item.get("builtin")),
-        "content": content if content.strip() else (SHB_SCRIPT if preset_id == "shb" else content),
+        "content": content if content.strip() else _fallback,
     }
 
 
@@ -121,16 +182,18 @@ def load_scripts() -> dict:
                 if norm:
                     loaded.append(norm)
             if loaded:
-                # гарантируем наличие ШБ
-                if not any(p["id"] == "shb" for p in loaded):
-                    loaded.insert(0, default_presets()[0])
-                else:
-                    for p in loaded:
-                        if p["id"] == "shb":
-                            p["name"] = "ШБ"
-                            p["builtin"] = True
-                            if not p.get("content", "").strip():
-                                p["content"] = SHB_SCRIPT
+                # гарантируем наличие ШБ и ШБ new
+                defaults = {d["id"]: d for d in default_presets()}
+                for did, dpreset in defaults.items():
+                    if not any(p["id"] == did for p in loaded):
+                        loaded.insert(0, dpreset)
+                for p in loaded:
+                    if p["id"] in defaults:
+                        d = defaults[p["id"]]
+                        p["name"] = d["name"]
+                        p["builtin"] = True
+                        if not p.get("content", "").strip():
+                            p["content"] = d["content"]
                 presets = loaded
     if not any(p["id"] == selected for p in presets):
         selected = presets[0]["id"]
@@ -145,8 +208,10 @@ def save_scripts(data: dict) -> dict:
             presets.append(norm)
     if not presets:
         presets = default_presets()
-    if not any(p["id"] == "shb" for p in presets):
-        presets.insert(0, default_presets()[0])
+    defaults = {d["id"]: d for d in default_presets()}
+    for did, dpreset in defaults.items():
+        if not any(p["id"] == did for p in presets):
+            presets.insert(0, dpreset)
     selected = str(data.get("selected") or presets[0]["id"])
     if not any(p["id"] == selected for p in presets):
         selected = presets[0]["id"]
